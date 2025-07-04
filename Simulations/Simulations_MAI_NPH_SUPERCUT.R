@@ -281,9 +281,40 @@ simulate_iteration <- function(i){
   ####### sur la base de validation
   
   Zdata_val <- cbind(data_valid$stage2, data_valid$stage3, data_valid$agey10, data_valid$sex, data_valid$colon)
+  colnames(Zdata_val) <- c("stage2", "stage3", "agey10", "sex", "colon")
   
-  theopredval <- t(sapply(1:dim(Zdata_val)[1], FUN = function(i){
-    Sn(time = newtimes, sigma = Tsigma, nu = Tnu, theta = Ttheta, beta = betaZ,  covariates = Zdata_val[i,]) } ) )
+  
+  funtheo_val <- function(i){
+    if(Zdata_val[i,"sex"] == 1 & Zdata_val[i,"colon"] == 1){
+      Tsigma = TsigmaHC
+      Tnu = TnuHC
+      Ttheta = TthetaHC
+      betaZ = betaZHC
+    }
+    # Hommes rectum
+    if(Zdata_val[i,"sex"] == 1 & Zdata_val[i,"colon"] == 0){
+      Tsigma = TsigmaHR
+      Tnu = TnuHR
+      Ttheta = TthetaHR
+      betaZ = betaZHR
+    }
+    # Femmes colon
+    if(Zdata_val[i,"sex"] == 2 & Zdata_val[i,"colon"] == 1){
+      Tsigma = TsigmaFC
+      Tnu = TnuFC
+      Ttheta = TthetaFC
+      betaZ = betaZFC
+    }
+    # Femmes rectum
+    if(Zdata_val[i,"sex"] == 2 & Zdata_val[i,"colon"] == 0){
+      Tsigma = TsigmaFR
+      Tnu = TnuFR
+      Ttheta = TthetaFR
+      betaZ = betaZFR
+    }
+    Sn(time = newtimes, sigma = Tsigma, nu = Tnu, theta = Ttheta, beta = betaZ, covariates = Zdata_val[i,-c(4,5)]) }
+  
+  theopredval <- t(sapply(1:dim(Zdata_val)[1], FUN = funtheo_val ))
   
   colnames(theopredval) <- newtimes
   
@@ -292,27 +323,55 @@ simulate_iteration <- function(i){
   ###strates
   #####
   
+  
   for(j in strata_names){
     
-    data_valid_var <- get(paste0("data_valid_", j))
+    data_val_var <- get(paste0("data_valid_", j))
     
-    Zdata_valid <- cbind(data_valid_var$stage2, data_valid_var$stage3, data_valid_var$agey10, data_valid_var$sex, data_valid_var$colon)
+    Zdata_val <- cbind(data_val_var$stage2, data_val_var$stage3, data_val_var$agey10, data_val_var$sex, data_val_var$colon)
+    colnames(Zdata_val) <- c("stage2", "stage3", "agey10", "sex", "colon")
     
-    theopredvalstrat <- t(sapply(1:nrow(Zdata_valid), FUN = function(i) {
-      Sn(time = newtimes, sigma = Tsigma, nu = Tnu, theta = Ttheta, beta = betaZ, covariates = Zdata_valid[i,])
-    }))
+    funtheovalstrat <- function(i){
+      if(Zdata_val[i,"sex"] == 1 & Zdata_val[i,"colon"] == 1){
+        Tsigma = TsigmaHC
+        Tnu = TnuHC
+        Ttheta = TthetaHC
+        betaZ = betaZHC
+      }
+      # Hommes rectum
+      if(Zdata_val[i,"sex"] == 1 & Zdata_val[i,"colon"] == 0){
+        Tsigma = TsigmaHR
+        Tnu = TnuHR
+        Ttheta = TthetaHR
+        betaZ = betaZHR
+      }
+      # Femmes colon
+      if(Zdata_val[i,"sex"] == 2 & Zdata_val[i,"colon"] == 1){
+        Tsigma = TsigmaFC
+        Tnu = TnuFC
+        Ttheta = TthetaFC
+        betaZ = betaZFC
+      }
+      # Femmes rectum
+      if(Zdata_val[i,"sex"] == 2 & Zdata_val[i,"colon"] == 0){
+        Tsigma = TsigmaFR
+        Tnu = TnuFR
+        Ttheta = TthetaFR
+        betaZ = betaZFR
+      }
+      Sn(time = newtimes, sigma = Tsigma, nu = Tnu, theta = Ttheta, beta = betaZ, covariates = Zdata_val[i,-c(4,5)]) }
+    
+    theopredvalstrat <- t(sapply(1:dim(Zdata_val)[1], FUN = funtheovalstrat ))
     
     colnames(theopredvalstrat) <- newtimes
     
-    mean.theoval_strat <- apply(theopredvalstrat, FUN = "mean", MARGIN = 2)
+    mean.theoval_strat <- apply(theopredstrat, FUN = "mean", MARGIN = 2)
     
-    assign(paste0("Zdata_val_", j), Zdata_valid)
+    assign(paste0("Zdata_val_", j), Zdata_val)
     assign(paste0("theopredval_", j), theopredvalstrat)
     assign(paste0("mean.theoval_", j), mean.theoval_strat)  
     
   }
-  
-  
   #####
   #######################################################
   ###### choix des hyper-paramètres par cross-validation
@@ -3479,9 +3538,39 @@ simulate_iteration <- function(i){
   ####### sur la base de validation
   
   Zdata_val <- cbind(data_valid$stage2, data_valid$stage3, data_valid$agey10, data_valid$sex, data_valid$colon)
+  colnames(Zdata_val) <- c("stage2", "stage3", "agey10", "sex", "colon")
   
-  theopredval <- t(sapply(1:dim(Zdata_val)[1], FUN = function(i){
-    Sn(time = newtimes, sigma = Tsigma, nu = Tnu, theta = Ttheta, beta = betaZ,  covariates = Zdata_val[i,]) } ) )
+  funtheo_val <- function(i){
+    if(Zdata_val[i,"sex"] == 1 & Zdata_val[i,"colon"] == 1){
+      Tsigma = TsigmaHC
+      Tnu = TnuHC
+      Ttheta = TthetaHC
+      betaZ = betaZHC
+    }
+    # Hommes rectum
+    if(Zdata_val[i,"sex"] == 1 & Zdata_val[i,"colon"] == 0){
+      Tsigma = TsigmaHR
+      Tnu = TnuHR
+      Ttheta = TthetaHR
+      betaZ = betaZHR
+    }
+    # Femmes colon
+    if(Zdata_val[i,"sex"] == 2 & Zdata_val[i,"colon"] == 1){
+      Tsigma = TsigmaFC
+      Tnu = TnuFC
+      Ttheta = TthetaFC
+      betaZ = betaZFC
+    }
+    # Femmes rectum
+    if(Zdata_val[i,"sex"] == 2 & Zdata_val[i,"colon"] == 0){
+      Tsigma = TsigmaFR
+      Tnu = TnuFR
+      Ttheta = TthetaFR
+      betaZ = betaZFR
+    }
+    Sn(time = newtimes, sigma = Tsigma, nu = Tnu, theta = Ttheta, beta = betaZ, covariates = Zdata_val[i,-c(4,5)]) }
+  
+  theopredval <- t(sapply(1:dim(Zdata_val)[1], FUN = funtheo_val ))
   
   colnames(theopredval) <- newtimes
   
@@ -3490,27 +3579,55 @@ simulate_iteration <- function(i){
   ###strates
   #####
   
+  
   for(j in strata_names){
     
-    data_valid_var <- get(paste0("data_valid_", j))
+    data_val_var <- get(paste0("data_valid_", j))
     
-    Zdata_valid <- cbind(data_valid_var$stage2, data_valid_var$stage3, data_valid_var$agey10, data_valid_var$sex, data_valid_var$colon)
+    Zdata_val <- cbind(data_val_var$stage2, data_val_var$stage3, data_val_var$agey10, data_val_var$sex, data_val_var$colon)
+    colnames(Zdata_val) <- c("stage2", "stage3", "agey10", "sex", "colon")
     
-    theopredvalstrat <- t(sapply(1:nrow(Zdata_valid), FUN = function(i) {
-      Sn(time = newtimes, sigma = Tsigma, nu = Tnu, theta = Ttheta, beta = betaZ, covariates = Zdata_valid[i,])
-    }))
+    funtheovalstrat <- function(i){
+      if(Zdata_val[i,"sex"] == 1 & Zdata_val[i,"colon"] == 1){
+        Tsigma = TsigmaHC
+        Tnu = TnuHC
+        Ttheta = TthetaHC
+        betaZ = betaZHC
+      }
+      # Hommes rectum
+      if(Zdata_val[i,"sex"] == 1 & Zdata_val[i,"colon"] == 0){
+        Tsigma = TsigmaHR
+        Tnu = TnuHR
+        Ttheta = TthetaHR
+        betaZ = betaZHR
+      }
+      # Femmes colon
+      if(Zdata_val[i,"sex"] == 2 & Zdata_val[i,"colon"] == 1){
+        Tsigma = TsigmaFC
+        Tnu = TnuFC
+        Ttheta = TthetaFC
+        betaZ = betaZFC
+      }
+      # Femmes rectum
+      if(Zdata_val[i,"sex"] == 2 & Zdata_val[i,"colon"] == 0){
+        Tsigma = TsigmaFR
+        Tnu = TnuFR
+        Ttheta = TthetaFR
+        betaZ = betaZFR
+      }
+      Sn(time = newtimes, sigma = Tsigma, nu = Tnu, theta = Ttheta, beta = betaZ, covariates = Zdata_val[i,-c(4,5)]) }
+    
+    theopredvalstrat <- t(sapply(1:dim(Zdata_val)[1], FUN = funtheovalstrat ))
     
     colnames(theopredvalstrat) <- newtimes
     
-    mean.theoval_strat <- apply(theopredvalstrat, FUN = "mean", MARGIN = 2)
+    mean.theoval_strat <- apply(theopredstrat, FUN = "mean", MARGIN = 2)
     
-    assign(paste0("Zdata_val_", j), Zdata_valid)
+    assign(paste0("Zdata_val_", j), Zdata_val)
     assign(paste0("theopredval_", j), theopredvalstrat)
     assign(paste0("mean.theoval_", j), mean.theoval_strat)  
     
   }
-  
-  
   #####
   #######################################################
   ###### choix des hyper-paramètres par cross-validation
@@ -6679,9 +6796,39 @@ simulate_iteration <- function(i){
   ####### sur la base de validation
   
   Zdata_val <- cbind(data_valid$stage2, data_valid$stage3, data_valid$agey10, data_valid$sex, data_valid$colon)
+  colnames(Zdata_val) <- c("stage2", "stage3", "agey10", "sex", "colon")
   
-  theopredval <- t(sapply(1:dim(Zdata_val)[1], FUN = function(i){
-    Sn(time = newtimes, sigma = Tsigma, nu = Tnu, theta = Ttheta, beta = betaZ,  covariates = Zdata_val[i,]) } ) )
+  funtheo_val <- function(i){
+    if(Zdata_val[i,"sex"] == 1 & Zdata_val[i,"colon"] == 1){
+      Tsigma = TsigmaHC
+      Tnu = TnuHC
+      Ttheta = TthetaHC
+      betaZ = betaZHC
+    }
+    # Hommes rectum
+    if(Zdata_val[i,"sex"] == 1 & Zdata_val[i,"colon"] == 0){
+      Tsigma = TsigmaHR
+      Tnu = TnuHR
+      Ttheta = TthetaHR
+      betaZ = betaZHR
+    }
+    # Femmes colon
+    if(Zdata_val[i,"sex"] == 2 & Zdata_val[i,"colon"] == 1){
+      Tsigma = TsigmaFC
+      Tnu = TnuFC
+      Ttheta = TthetaFC
+      betaZ = betaZFC
+    }
+    # Femmes rectum
+    if(Zdata_val[i,"sex"] == 2 & Zdata_val[i,"colon"] == 0){
+      Tsigma = TsigmaFR
+      Tnu = TnuFR
+      Ttheta = TthetaFR
+      betaZ = betaZFR
+    }
+    Sn(time = newtimes, sigma = Tsigma, nu = Tnu, theta = Ttheta, beta = betaZ, covariates = Zdata_val[i,-c(4,5)]) }
+  
+  theopredval <- t(sapply(1:dim(Zdata_val)[1], FUN = funtheo_val ))
   
   colnames(theopredval) <- newtimes
   
@@ -6690,26 +6837,55 @@ simulate_iteration <- function(i){
   ###strates
   #####
   
+  
   for(j in strata_names){
     
-    data_valid_var <- get(paste0("data_valid_", j))
+    data_val_var <- get(paste0("data_valid_", j))
     
-    Zdata_valid <- cbind(data_valid_var$stage2, data_valid_var$stage3, data_valid_var$agey10, data_valid_var$sex, data_valid_var$colon)
+    Zdata_val <- cbind(data_val_var$stage2, data_val_var$stage3, data_val_var$agey10, data_val_var$sex, data_val_var$colon)
+    colnames(Zdata_val) <- c("stage2", "stage3", "agey10", "sex", "colon")
     
-    theopredvalstrat <- t(sapply(1:nrow(Zdata_valid), FUN = function(i) {
-      Sn(time = newtimes, sigma = Tsigma, nu = Tnu, theta = Ttheta, beta = betaZ, covariates = Zdata_valid[i,])
-    }))
+    funtheovalstrat <- function(i){
+      if(Zdata_val[i,"sex"] == 1 & Zdata_val[i,"colon"] == 1){
+        Tsigma = TsigmaHC
+        Tnu = TnuHC
+        Ttheta = TthetaHC
+        betaZ = betaZHC
+      }
+      # Hommes rectum
+      if(Zdata_val[i,"sex"] == 1 & Zdata_val[i,"colon"] == 0){
+        Tsigma = TsigmaHR
+        Tnu = TnuHR
+        Ttheta = TthetaHR
+        betaZ = betaZHR
+      }
+      # Femmes colon
+      if(Zdata_val[i,"sex"] == 2 & Zdata_val[i,"colon"] == 1){
+        Tsigma = TsigmaFC
+        Tnu = TnuFC
+        Ttheta = TthetaFC
+        betaZ = betaZFC
+      }
+      # Femmes rectum
+      if(Zdata_val[i,"sex"] == 2 & Zdata_val[i,"colon"] == 0){
+        Tsigma = TsigmaFR
+        Tnu = TnuFR
+        Ttheta = TthetaFR
+        betaZ = betaZFR
+      }
+      Sn(time = newtimes, sigma = Tsigma, nu = Tnu, theta = Ttheta, beta = betaZ, covariates = Zdata_val[i,-c(4,5)]) }
+    
+    theopredvalstrat <- t(sapply(1:dim(Zdata_val)[1], FUN = funtheovalstrat ))
     
     colnames(theopredvalstrat) <- newtimes
     
-    mean.theoval_strat <- apply(theopredvalstrat, FUN = "mean", MARGIN = 2)
+    mean.theoval_strat <- apply(theopredstrat, FUN = "mean", MARGIN = 2)
     
-    assign(paste0("Zdata_val_", j), Zdata_valid)
+    assign(paste0("Zdata_val_", j), Zdata_val)
     assign(paste0("theopredval_", j), theopredvalstrat)
     assign(paste0("mean.theoval_", j), mean.theoval_strat)  
     
   }
-  
   
   #####
   #######################################################

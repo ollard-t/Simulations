@@ -21,7 +21,6 @@
 ## 5000IndSTA : N5000 début calcul indicateurs
 ## 5000IndEND : N5000 fin calcul indicateurs
 
-date_launch <- Sys.Date()
 #################################################################################################
 #################################################################################################
 #################################################################################################
@@ -34,12 +33,13 @@ library(survivalNET)
 library(survivalPLANN)
 library(parallel)
 library(doParallel)
+date_launch <- Sys.Date()
 
 #################################################################################################
 ### path ###
 
-path0 <- "~/Documents/Simulations/Simulations mai 2025/Résultats/N1000_results/PH/Output Simulations_N1000_PH_HC/"
-path1 <- "~/Documents/Simulations/BASES/"
+path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N1000_results/PH/Output Simulations_N1000_PH_HC/"
+path1 <- "~/Documents/Rstudio/Simulations/BASES/"
 # path0 <- paste0(getwd(),"/")
 ############
 
@@ -1435,7 +1435,7 @@ date_launch <- Sys.Date()
 library(parallel)
 library(doParallel)
 
-path0 <- "~/Documents/Simulations/Simulations mai 2025/Résultats/N1000_results/PH/Output Simulations_N1000_PH_HC/"
+path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N1000_results/PH/Output Simulations_N1000_PH_HC/"
 
 indic = c()
 for(i in 1:1000){
@@ -3278,7 +3278,7 @@ for(l in c("P","F1.2","F1.4","F2.2","F2.4","WG")){
 print(Sys.time()-start)
 
 
-save.image(paste0("~/Documents/Simulations/Simulations mai 2025/Résultats/",length(iterations),"ite_1000ind_",date_launch,".Rdata"))
+save.image(paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/",length(iterations),"ite_1000ind_",date_launch,".Rdata"))
 
 rm(list = ls(envir = .GlobalEnv), envir = .GlobalEnv)
 
@@ -3301,8 +3301,8 @@ date_launch <- Sys.Date()
 #################################################################################################
 ### path ###
 
-path0 <- "~/Documents/Simulations/Simulations mai 2025/Résultats/N3000_results/PH/Output Simulations_N3000_PH_HC/"
-path1 <- "~/Documents/Simulations/BASES/"
+path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N3000_results/PH/Output Simulations_N3000_PH_HC/"
+path1 <- "~/Documents/Rstudio/Simulations/BASES/"
 # path0 <- paste0(getwd(),"/")
 ############
 
@@ -4700,7 +4700,7 @@ date_launch <- Sys.Date()
 library(parallel)
 library(doParallel)
 
-path0 <- "~/Documents/Simulations/Simulations mai 2025/Résultats/N3000_results/PH/Output Simulations_N3000_PH_HC/"
+path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N3000_results/PH/Output Simulations_N3000_PH_HC/"
 
 
 indic = c()
@@ -6544,7 +6544,7 @@ for(l in c("P","F1.2","F1.4","F2.2","F2.4","WG")){
 print(Sys.time()-start)
 
 
-save.image(paste0("~/Documents/Simulations/Simulations mai 2025/Résultats/",length(iterations),"ite_3000ind_",date_launch,".Rdata"))
+save.image(paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/",length(iterations),"ite_3000ind_",date_launch,".Rdata"))
 
 
 rm(list = ls(envir = .GlobalEnv), envir = .GlobalEnv)
@@ -6564,8 +6564,8 @@ library(parallel)
 library(doParallel)
 date_launch <- Sys.Date()
 
-path0 <- "~/Documents/Simulations/Simulations mai 2025/Résultats/N5000_results/PH/Output Simulations_N5000_PH_HC/"
-path1 <- "~/Documents/Simulations/BASES/"
+path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N5000_results/PH/Output Simulations_N5000_PH_HC/"
+path1 <- "~/Documents/Rstudio/Simulations/BASES/"
 ############
 
 #importation des données
@@ -7946,7 +7946,7 @@ library(parallel)
 library(doParallel)
 
 
-path0 <- "~/Documents/Simulations/Simulations mai 2025/Résultats/N5000_results/PH/Output Simulations_N5000_PH_HC/"
+path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N5000_results/PH/Output Simulations_N5000_PH_HC/"
 
 
 indic = c()
@@ -9789,4 +9789,4 @@ for(l in c("P","F1.2","F1.4","F2.2","F2.4","WG")){
 
 print(Sys.time()-start)
 ## 5000IndEND
-save.image(paste0("~/Documents/Simulations/Simulations mai 2025/Résultats/",length(iterations),"ite_5000ind_",date_launch,".Rdata"))
+save.image(paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/",length(iterations),"ite_5000ind_",date_launch,".Rdata"))

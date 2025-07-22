@@ -38,10 +38,11 @@ library(survivalNET)
 library(survivalPLANN)
 library(parallel)
 library(doParallel)
+date_launch <- Sys.Date()
 
 
-path0 <- "~/Documents/Simulations/Simulations mai 2025/N1000/Output simulations_N1000_NPH_HC/"
-path1 <- "~/Documents/Simulations/BASES/"
+path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N1000/Output simulations_N1000_NPH_HC/"
+path1 <- "~/Documents/Rstudio/Simulations/BASES/"
 ############
 
 #importation des données
@@ -443,12 +444,28 @@ simulate_iteration <- function(i){
                         decay=decay, maxit=maxit, MaxNWts=MaxNWts)
   
   ### Weibull Généralisé 
-  
-  WG.model <- survivalNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + sex01 + colon +
-                            ratetable(age, year, sexchara), data = data_train,
+  ## modèle "parfait" donc en NPH on va estimer un modèle par strate.
+ 
+  WG.model_HC <- survivalNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + 
+                            ratetable(age, year, sexchara), data = data_train_HC,
                           ratetable=slopop, dist = "genweibull")
+  WG.model_HR <- survivalNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + 
+                            ratetable(age, year, sexchara), data = data_train_HR,
+                          ratetable=slopop, dist = "genweibull")
+  WG.model_FC <- survivalNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + 
+                            ratetable(age, year, sexchara), data = data_train_FC,
+                          ratetable=slopop, dist = "genweibull")
+  WG.model_FR <- survivalNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 +
+                            ratetable(age, year, sexchara), data = data_train_FR,
+                          ratetable=slopop, dist = "genweibull")
+ 
+
+  logcoeffWGHC <- WG.model_HC$coefficients
+  logcoeffWGHR <- WG.model_HR$coefficients
+  logcoeffWGFC <- WG.model_FC$coefficients
+  logcoeffWGFR <- WG.model_FR$coefficients
   
-  logcoeffWG <- tail(WG.model$coefficients, 3)
+  logcoeffWG <- rbind(logcoeffWGHC, logcoeffWGHR, logcoeffWGFC ,logcoeffWGFR)
   
   ################## flex1
   ########### 2 noeuds
@@ -619,9 +636,9 @@ simulate_iteration <- function(i){
   mean.flex2.4  <- apply(flexpred2.4 , FUN="mean", MARGIN=2)
   ### genweibull
   
-  WGpred <- predict(WG.model, newtimes = newtimes)$predictions
-  
-  mean.WG <- apply(WGpred, FUN="mean", MARGIN=2)
+  # WGpred <- predict(WG.model, newtimes = newtimes)$predictions
+  # 
+  # mean.WG <- apply(WGpred, FUN="mean", MARGIN=2)
   
   
   ### Estimateur de Pohar-Perme 
@@ -717,7 +734,7 @@ simulate_iteration <- function(i){
     
     data_train_var <- get(paste0("data_train_", j))
     
-    WGpredS <- predict(WG.model, newtimes = newtimes, newdata = data_train_var)$predictions
+    WGpredS <- predict(get(paste0("WG.model_",j)), newtimes = newtimes, newdata = data_train_var)$predictions
     
     mean.WGS <- apply(WGpredS, FUN="mean", MARGIN=2)
     
@@ -725,7 +742,24 @@ simulate_iteration <- function(i){
     assign(paste0("mean.WG_", j), mean.WGS)
   }
   
+  rowid <- seq_len(nrow(data_train))
+  pred_list <- list()
+  groups <- sort(unique(data_train$sex.organ))
+  correstab <- setNames(c("HR", "HC", "FR", "FC"),groups)
+  for (k in groups) {
+    idx <- which(data_train$sex.organ == k)
+    
+    pred_list[[as.character(k)]] <- data.frame(
+      rowid = rowid[idx],
+      pred = get(paste0("WGpred_", correstab[k])) )
+  }
   
+  # Combine all predictions into one dataframe
+  WGpred <- do.call(rbind, pred_list)
+  WGpred <- WGpred[order(WGpred$rowid), ]
+  WGpred$rowid <- NULL
+  colnames(WGpred) <- newtimes
+  mean.WG <- apply(WGpred, FUN="mean", MARGIN=2)
   ##Estimateur de Pohar-Perme 
   
   for(j in strata_names){
@@ -785,9 +819,9 @@ simulate_iteration <- function(i){
   
   ### genweibull
   
-  WGpredval <- predict(WG.model, newtimes = newtimes, newdata = data_valid)$predictions
-  
-  mean.WGval <- apply(WGpredval, FUN="mean", MARGIN=2)
+  # WGpredval <- predict(WG.model, newtimes = newtimes, newdata = data_valid)$predictions
+  # 
+  # mean.WGval <- apply(WGpredval, FUN="mean", MARGIN=2)
   
   ### Estimateur de Pohar-Perme 
   
@@ -882,7 +916,7 @@ simulate_iteration <- function(i){
     
     data_valid_var <- get(paste0("data_valid_", j))
     
-    WGpredvalS <- predict(WG.model, newtimes = newtimes, newdata = data_valid_var)$predictions
+    WGpredvalS <- predict(get(paste0("WG.model_",j)), newtimes = newtimes, newdata = data_valid_var)$predictions
     
     mean.WGvalS <- apply(WGpredvalS, FUN="mean", MARGIN=2)
     
@@ -890,6 +924,24 @@ simulate_iteration <- function(i){
     assign(paste0("mean.WGval_", j), mean.WGvalS)
   }
   
+  rowid <- seq_len(nrow(data_valid))
+  pred_list <- list()
+  groups <- sort(unique(data_valid$sex.organ))
+  correstab <- setNames(c("HR", "HC", "FR", "FC"),groups)
+  for (k in groups) {
+    idx <- which(data_valid$sex.organ == k)
+    
+    pred_list[[as.character(k)]] <- data.frame(
+      rowid = rowid[idx],
+      pred = get(paste0("WGpredval_", correstab[k])) )
+  }
+  
+  # Combine all predictions into one dataframe
+  WGpredval <- do.call(rbind, pred_list)
+  WGpredval <- WGpredval[order(WGpredval$rowid), ]
+  WGpredval$rowid <- NULL
+  colnames(WGpredval) <- newtimes
+  mean.WGval <- apply(WGpredval, FUN="mean", MARGIN=2)
   ##Estimateur de Pohar-Perme 
   
   for(j in strata_names){
@@ -951,9 +1003,17 @@ simulate_iteration <- function(i){
   m2.2value <- paste0(m2.2, failedindic2.2)
   m2.4value <- paste0(m2.4, failedindic2.4)
   
+  flex1.2.coeff <- flex.model1.2$coefficients
+  flex1.4.coeff <- flex.model1.4$coefficients
+
+  flex2.2.coeff <- flex.model2.2$coefficients
+  flex2.4.coeff <- flex.model2.4$coefficients
+  
   paramsCV <- as.data.frame(c(inter = inter,size = size,decay = decay, maxit = maxit,
-                              MaxNWts = MaxNWts, m1.2 = m1.2value, m1.4 = m1.4value, 
-                              m2.2 = m2.2value, m2.4 = m2.4value, logcoeffWG = logcoeffWG))
+                              MaxNWts = MaxNWts, m1.2 = m1.2value, coeff1.2 = flex1.2.coeff, m1.4 = m1.4value, 
+                              coeff1.4 = flex1.4.coeff, m2.2 = m2.2value, coeff2.2 = flex2.2.coeff,
+                              m2.4 = m2.4value, coeff2.4 = flex2.4.coeff, logcoeffHC = logcoeffWG[1,], 
+                              logcoeffHR = logcoeffWG[2,], logcoeffFC = logcoeffWG[3,], logcoeffFR = logcoeffWG[4,] ))
   
   write.table(paramsCV,  paste0(path0, "PARAM/",i,"_param.csv"))
   
@@ -965,7 +1025,7 @@ simulate_iteration <- function(i){
   write.table(timeComputation,  paste0(path0, "TIME/",i,"_time.csv"))
   
   ##############Log(LIKELIHOOD)####################### 
-  
+  ##TRAIN
   plann.loglik <- plannpred$loglik  
   
   flex1.2.loglik <- unname(flex.model1.2$loglik[1])
@@ -974,14 +1034,237 @@ simulate_iteration <- function(i){
   flex2.2.loglik <- unname(flex.model2.2$loglik[1])
   flex2.4.loglik <- unname(flex.model2.4$loglik[1])
   
-  WG.loglik <- unname(WG.model$loglik[1])
+  WG.loglik <- unname(WG.model_FC$loglik[1] + WG.model_HR$loglik[1] 
+                      + WG.model_HC$loglik[1] + WG.model_FR$loglik[1])
+  WG_HC.loglik <- unname(WG.model_HC$loglik[1])
+  WG_HR.loglik <- unname(WG.model_HR$loglik[1])
+  WG_FC.loglik <- unname(WG.model_FC$loglik[1])
+  WG_FR.loglik <- unname(WG.model_FR$loglik[1])
   
   logliks <- as.data.frame(c(plann = plann.loglik, flex1.2 = flex1.2.loglik,
                              flex1.4 = flex1.4.loglik, flex2.2 = flex2.2.loglik,
-                             flex2.4 = flex2.4.loglik, WG = WG.loglik))
+                             flex2.4 = flex2.4.loglik, WG = WG.loglik,
+                             WG_HC = WG_HC.loglik, WG_HR = WG_HR.loglik, 
+                             WG_FC = WG_FC.loglik, WG_FR = WG_FR.loglik ))
   
-  write.table(logliks,  paste0(path0, "LOGLIK/",i,"_loglik.csv"))
+  write.table(logliks,  paste0(path0, "LOGLIK/TRAIN/",i,"_loglik.csv"))
+  #############
+  ### VALIDATION 
+  #############
   
+  event_valid <- data_valid$status 
+  time_valid <- data_valid$times 
+  
+  hP_valid <- c()
+  
+  for(i in 1:dim(data_valid)[1] ){
+    hP_valid <- c(hP_valid, expectedhaz(slopop, age=data_valid[i, "age"], sex=data_valid[i, "sex"],
+                                        year=data_valid[i, "year"], time=time_valid[i]) )
+  }
+  ### plann
+  
+   loglikval_plann <- plannpredval$loglik
+    
+    
+  ### flex 1
+  #1.2
+  beta_est1.2 <- flex1.2.coeff[1:(length(flex1.2.coeff)-(flex.model1.2$m+2))]
+  gamma_est1.2 <- tail(flex1.2.coeff, flex.model1.2$m+2)
+  cova_valid <- as.matrix(data_valid[,names(beta_est1.2)])
+  
+  
+  loglikval_1.2 <- sum( event_valid * log(hP_valid + (1/time_valid)*splinecubeP(time_valid, gamma_est1.2, flex.model1.2$m, flex.model1.2$mpos)$spln *
+                  exp(splinecube(time_valid, gamma_est1.2, flex.model1.2$m, flex.model1.2$mpos)$spln + cova_valid %*% beta_est1.2) ) -
+      exp(splinecube(time_valid, gamma_est1.2, flex.model1.2$m, flex.model1.2$mpos)$spln 
+          + cova_valid %*% beta_est1.2) )
+  #1.4
+  
+  beta_est1.4 <- flex1.4.coeff[1:(length(flex1.4.coeff)-(flex.model1.4$m+2))]
+  gamma_est1.4 <- tail(flex1.4.coeff, flex.model1.4$m+2)
+  cova_valid <- as.matrix(data_valid[,names(beta_est1.4)])
+  
+
+
+  loglikval_1.4 <- sum( event_valid * log(hP_valid + (1/time_valid)*splinecubeP(time_valid, gamma_est1.4, flex.model1.4$m, flex.model1.4$mpos)$spln *
+                                          exp(splinecube(time_valid, gamma_est1.4, flex.model1.4$m, flex.model1.4$mpos)$spln + cova_valid %*% beta_est1.4) ) -
+                        exp(splinecube(time_valid, gamma_est1.4, flex.model1.4$m, flex.model1.4$mpos)$spln 
+                            + cova_valid %*% beta_est1.4) )
+  
+  ### flex 2
+  #2.2
+  beta_est2.2 <- c()
+  gamma_est2.2 <- c()
+  for (i in 1:length(flex.model2.2$correstab)) {
+    beta_est2.2 <- c(beta_est2.2,unname( flex.model2.2$coefficients[(1:(dim(flex.model2.2$x)[2])+(dim(flex.model2.2$x)[2]+flex.model2.2$m+2)*(i-1))] ) ) 
+    gamma_est2.2 <- c(gamma_est2.2, unname( flex.model2.2$coefficients[(dim(flex.model2.2$x)[2]+1):(dim(flex.model2.2$x)[2]+ (flex.model2.2$m+2)) +(dim(flex.model2.2$x)[2]+flex.model2.2$m+2)*(i-1)] ))
+  }
+  value <- c()
+  K <- sort(unique(data_valid$sex.organ))
+  cova_valid2 <- cova_valid[,-((dim(cova_valid)[2]-1):dim(cova_valid)[2])]
+  for(k in K){
+    betak <- beta_est2.2[(1+(k-1)*3):(3+(k-1)*3)]
+    gammak <- gamma_est2.2[(1+(k-1)*(flex.model2.2$m+2)):(flex.model2.2$m+2+(k-1)*(flex.model2.2$m+2))]
+    idx <- data_valid$sex.organ == k
+    
+    timek <- time_valid[idx]
+    eventk <- event_valid[idx]
+    hPk <- hP_valid[idx]
+    covak <- cova_valid2[idx, , drop = FALSE]
+    # wk <- w[idx]
+    
+    splk <- splinecube(timek, gammak, flex.model2.2$m, flex.model2.2$mpos[,k])$spln
+    splkP <- splinecubeP(timek, gammak, flex.model2.2$m, flex.model2.2$mpos[,k])$spln
+    linpred <- splk + as.matrix(covak) %*% as.matrix(betak)
+    
+    value_strate <- sum((eventk * log(hPk + (1 / timek) * splkP * exp(linpred)) - exp(linpred)))
+  
+  
+    value <- c(value, value_strate)
+  }
+  
+  loglikval_2.2 <- sum(value)
+  #2.4
+  
+  beta_est2.4 <- c()
+  gamma_est2.4 <- c()
+  for (i in 1:length(flex.model2.4$correstab)) {
+    beta_est2.4 <- c(beta_est2.4,unname( flex.model2.4$coefficients[(1:(dim(flex.model2.4$x)[2])+(dim(flex.model2.4$x)[2]+flex.model2.4$m+2)*(i-1))] ) ) 
+    gamma_est2.4 <- c(gamma_est2.4, unname( flex.model2.4$coefficients[(dim(flex.model2.4$x)[2]+1):(dim(flex.model2.4$x)[2]+ (flex.model2.4$m+2)) +(dim(flex.model2.4$x)[2]+flex.model2.4$m+2)*(i-1)] ))
+  }
+  value <- c()
+  K <- sort(unique(data_valid$sex.organ))
+  cova_valid2 <- cova_valid[,-((dim(cova_valid)[2]-1):dim(cova_valid)[2])]
+  for(k in K){
+    betak <- beta_est2.4[(1+(k-1)*3):(3+(k-1)*3)]
+    gammak <- gamma_est2.4[(1+(k-1)*(flex.model2.4$m+2)):(flex.model2.4$m+2+(k-1)*(flex.model2.4$m+2))]
+    idx <- data_valid$sex.organ == k
+    
+    timek <- time_valid[idx]
+    eventk <- event_valid[idx]
+    hPk <- hP_valid[idx]
+    covak <- cova_valid2[idx, , drop = FALSE]
+    # wk <- w[idx]
+    
+    splk <- splinecube(timek, gammak, flex.model2.4$m, flex.model2.4$mpos[,k])$spln
+    splkP <- splinecubeP(timek, gammak, flex.model2.4$m, flex.model2.4$mpos[,k])$spln
+    linpred <- splk + as.matrix(covak) %*% as.matrix(betak)
+    
+    value_strate <- sum((eventk * log(hPk + (1 / timek) * splkP * exp(linpred)) - exp(linpred)))
+    
+    
+    value <- c(value, value_strate)
+  }
+  
+  loglikval_2.4 <- sum(value)
+  ### WG
+  #HC
+  beta_est_HC <- logcoeffWGHC[1:(length(logcoeffWGHC)-3)]
+  param_est_HC <- tail(logcoeffWGHC,3)
+  sigma_HC <- param_est_HC[1]
+  nu_HC <- param_est_HC[2]
+  theta_HC <-param_est_HC[3]
+  
+  event_HC <- data_valid_HC$status 
+  time_HC <- data_valid_HC$times 
+  cova_HC <- data_valid_HC[,names(beta_est_HC)]
+  
+  hP_HC <- c()
+  
+  for(i in 1:dim(data_valid_HC)[1] ){
+    hP_HC <- c(hP_HC, expectedhaz(slopop, age=data_valid_HC[i, "age"], sex=data_valid_HC[i, "sex"],
+                       year=data_valid_HC[i, "year"], time=time_HC[i]) )
+    }
+
+  holdHC <- hP_HC+exp(as.matrix(cova_HC)%*%beta_est_HC)*(
+    (1/theta_HC)*(1+(time_HC/sigma_HC)^nu_HC)^((1/theta_HC)-1)*(nu_HC/sigma_HC)*(time_HC/sigma_HC)^(nu_HC-1) ) 
+  holdHC <- ifelse(holdHC < 0, 10e-6, holdHC)
+  
+  loglikval_WG_HC <- sum( event_HC*log(holdHC)
+    + exp(as.matrix(cova_HC)%*%beta_est_HC)*(1-(1+(time_HC/sigma_HC)^nu_HC)^(1/theta_HC))  ) 
+  
+  
+  #HR 
+  beta_est_HR <- logcoeffWGHR[1:(length(logcoeffWGHR)-3)]
+  param_est_HR <- tail(logcoeffWGHR,3)
+  sigma_HR <- param_est_HR[1]
+  nu_HR <- param_est_HR[2]
+  theta_HR <-param_est_HR[3]
+  
+  event_HR <- data_valid_HR$status 
+  time_HR <- data_valid_HR$times 
+  cova_HR <- data_valid_HR[,names(beta_est_HR)]
+  
+  hP_HR <- c()
+  
+  for(i in 1:dim(data_valid_HR)[1] ){
+    hP_HR <- c(hP_HR, expectedhaz(slopop, age=data_valid_HR[i, "age"], sex=data_valid_HR[i, "sex"],
+                                  year=data_valid_HR[i, "year"], time=time_HR[i]) )
+  }
+  
+  holdHR <- hP_HR+exp(as.matrix(cova_HR)%*%beta_est_HR)*(
+    (1/theta_HR)*(1+(time_HR/sigma_HR)^nu_HR)^((1/theta_HR)-1)*(nu_HR/sigma_HR)*(time_HR/sigma_HR)^(nu_HR-1) ) 
+  holdHR <- ifelse(holdHR < 0, 10e-6, holdHR)
+  loglikval_WG_HR <- sum( event_HR*log(holdHR)
+    + exp(as.matrix(cova_HR)%*%beta_est_HR)*(1-(1+(time_HR/sigma_HR)^nu_HR)^(1/theta_HR))  ) 
+  
+  #FC 
+  beta_est_FC <- logcoeffWGFC[1:(length(logcoeffWGFC)-3)]
+  param_est_FC <- tail(logcoeffWGFC,3)
+  sigma_FC <- param_est_FC[1]
+  nu_FC <- param_est_FC[2]
+  theta_FC <-param_est_FC[3]
+  
+  event_FC <- data_valid_FC$status 
+  time_FC <- data_valid_FC$times 
+  cova_FC <- data_valid_FC[,names(beta_est_FC)]
+  
+  hP_FC <- c()
+  
+  for(i in 1:dim(data_valid_FC)[1] ){
+    hP_FC <- c(hP_FC, expectedhaz(slopop, age=data_valid_FC[i, "age"], sex=data_valid_FC[i, "sex"],
+                                  year=data_valid_FC[i, "year"], time=time_FC[i]) )
+  }
+  
+  holdFC <- hP_FC+exp(as.matrix(cova_FC)%*%beta_est_FC)*(
+    (1/theta_FC)*(1+(time_FC/sigma_FC)^nu_FC)^((1/theta_FC)-1)*(nu_FC/sigma_FC)*(time_FC/sigma_FC)^(nu_FC-1) ) 
+  holdFC <- ifelse(holdFC < 0, 10e-6, holdFC)
+  loglikval_WG_FC <- sum( event_FC*log(holdFC)
+                    + exp(as.matrix(cova_FC)%*%beta_est_FC)*(1-(1+(time_FC/sigma_FC)^nu_FC)^(1/theta_FC))  ) 
+  
+  #FR 
+  beta_est_FR <- logcoeffWGFR[1:(length(logcoeffWGFR)-3)]
+  param_est_FR <- tail(logcoeffWGFR,3)
+  sigma_FR <- param_est_FR[1]
+  nu_FR <- param_est_FR[2]
+  theta_FR <-param_est_FR[3]
+  
+  event_FR <- data_valid_FR$status 
+  time_FR <- data_valid_FR$times 
+  cova_FR <- data_valid_FR[,names(beta_est_FR)]
+  
+  hP_FR <- c()
+  
+  for(i in 1:dim(data_valid_FR)[1] ){
+    hP_FR <- c(hP_FR, expectedhaz(slopop, age=data_valid_FR[i, "age"], sex=data_valid_FR[i, "sex"],
+                                  year=data_valid_FR[i, "year"], time=time_FR[i]) )
+  }
+  
+  holdFR <- hP_FR+exp(as.matrix(cova_FR)%*%beta_est_FR)*(
+    (1/theta_FR)*(1+(time_FR/sigma_FR)^nu_FR)^((1/theta_FR)-1)*(nu_FR/sigma_FR)*(time_FR/sigma_FR)^(nu_FR-1) ) 
+  holdFR <- ifelse(holdFR < 0, 10e-6, holdFR)
+  loglikval_WG_FR <- sum( event_FR*log(holdFR)
+                    + exp(as.matrix(cova_FR)%*%beta_est_FR)*(1-(1+(time_FR/sigma_FR)^nu_FR)^(1/theta_FR))  ) 
+  
+  loglikval_WG <- loglikval_WG_HC + loglikval_WG_HR + loglikval_WG_FC + loglikval_WG_FR
+  
+  ############ enregistrement
+  logliksval <- as.data.frame(c(plann = loglikval_plann, flex1.2 = loglikval_1.2,
+                             flex1.4 = loglikval_1.4, flex2.2 = loglikval_2.2,
+                             flex2.4 = loglikval_2.4, WG = loglikval_WG,
+                             WG_HC = loglikval_WG_HC, WG_HR = loglikval_WG_HR, 
+                             WG_FC = loglikval_WG_FC, WG_FR = loglikval_WG_FR ))
+  
+  write.table(logliksval,  paste0(path0, "LOGLIK/VALID/",i,"_loglikval.csv"))
   ##################DATA TRAIN
   #################################### MOYENNES
   #######THEO
@@ -1560,10 +1843,12 @@ rm(list = ls(envir = .GlobalEnv), envir = .GlobalEnv)
 ############################
 
 ## 1000IndSTA
+date_launch <- Sys.Date()
+
 library(parallel)
 library(doParallel)
 
-path0 <- "~/Documents/Simulations/Simulations mai 2025/N1000/Output simulations_N1000_NPH_HC/"
+path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N1000/Output simulations_N1000_NPH_HC/"
 
 indic = c()
 for(i in 1:1000){
@@ -3267,7 +3552,7 @@ for(l in c("P","F1.2","F1.4","F2.2","F2.4","WG")){
 print(Sys.time()-start)
 
 
-save.image("~/Documents/Simulations/Simulations mai 2025/Résultats/N1000_results/NPH/1000ite_1000ind_NPH_HC_04_07.Rdata")
+save.image(paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/",length(iterations),"ite_1000ind_",date_launch,".Rdata"))
 
 rm(list = ls(envir = .GlobalEnv), envir = .GlobalEnv)
 
@@ -3287,12 +3572,13 @@ library(survivalNET)
 library(survivalPLANN)
 library(parallel)
 library(doParallel)
+date_launch <- Sys.Date()
 
 #################################################################################################
 ### path ###
 
-path0 <- "~/Documents/Simulations/Simulations mai 2025/N3000/Output simulations_N3000_NPH_HC/"
-path1 <- "~/Documents/Simulations/BASES/"
+path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N3000/Output simulations_N3000_NPH_HC/"
+path1 <- "~/Documents/Rstudio/Simulations/BASES/"
 # path0 <- paste0(getwd(),"/")
 ############
 
@@ -3699,12 +3985,28 @@ simulate_iteration <- function(i){
                         decay=decay, maxit=maxit, MaxNWts=MaxNWts)
   
   ### Weibull Généralisé 
+  ## modèle "parfait" donc en NPH on va estimer un modèle par strate.
   
-  WG.model <- survivalNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + sex01 + colon +
-                            ratetable(age, year, sexchara), data = data_train,
-                          ratetable=slopop, dist = "genweibull")
+  WG.model_HC <- survivalNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + 
+                               ratetable(age, year, sexchara), data = data_train_HC,
+                             ratetable=slopop, dist = "genweibull")
+  WG.model_HR <- survivalNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + 
+                               ratetable(age, year, sexchara), data = data_train_HR,
+                             ratetable=slopop, dist = "genweibull")
+  WG.model_FC <- survivalNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + 
+                               ratetable(age, year, sexchara), data = data_train_FC,
+                             ratetable=slopop, dist = "genweibull")
+  WG.model_FR <- survivalNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 +
+                               ratetable(age, year, sexchara), data = data_train_FR,
+                             ratetable=slopop, dist = "genweibull")
   
-  logcoeffWG <- tail(WG.model$coefficients, 3)
+  
+  logcoeffWGHC <- WG.model_HC$coefficients
+  logcoeffWGHR <- WG.model_HR$coefficients
+  logcoeffWGFC <- WG.model_FC$coefficients
+  logcoeffWGFR <- WG.model_FR$coefficients
+  
+  logcoeffWG <- rbind(logcoeffWGHC, logcoeffWGHR, logcoeffWGFC ,logcoeffWGFR)
   
   ################## flex1
   ########### 2 noeuds
@@ -3875,10 +4177,10 @@ simulate_iteration <- function(i){
   mean.flex2.4  <- apply(flexpred2.4 , FUN="mean", MARGIN=2)
   ### genweibull
   
-  WGpred <- predict(WG.model, newtimes = newtimes)$predictions
-  
-  mean.WG <- apply(WGpred, FUN="mean", MARGIN=2)
-  
+  # WGpred <- predict(WG.model, newtimes = newtimes)$predictions
+  # 
+  # mean.WG <- apply(WGpred, FUN="mean", MARGIN=2)
+  # 
   
   ### Estimateur de Pohar-Perme 
   
@@ -3969,11 +4271,12 @@ simulate_iteration <- function(i){
   
   ### genweibull
   
+  
   for(j in strata_names){
     
     data_train_var <- get(paste0("data_train_", j))
     
-    WGpredS <- predict(WG.model, newtimes = newtimes, newdata = data_train_var)$predictions
+    WGpredS <- predict(get(paste0("WG.model_",j)), newtimes = newtimes, newdata = data_train_var)$predictions
     
     mean.WGS <- apply(WGpredS, FUN="mean", MARGIN=2)
     
@@ -3981,7 +4284,24 @@ simulate_iteration <- function(i){
     assign(paste0("mean.WG_", j), mean.WGS)
   }
   
+  rowid <- seq_len(nrow(data_train))
+  pred_list <- list()
+  groups <- sort(unique(data_train$sex.organ))
+  correstab <- setNames(c("HR", "HC", "FR", "FC"),groups)
+  for (k in groups) {
+    idx <- which(data_train$sex.organ == k)
+    
+    pred_list[[as.character(k)]] <- data.frame(
+      rowid = rowid[idx],
+      pred = get(paste0("WGpred_", correstab[k])) )
+  }
   
+  # Combine all predictions into one dataframe
+  WGpred <- do.call(rbind, pred_list)
+  WGpred <- WGpred[order(WGpred$rowid), ]
+  WGpred$rowid <- NULL
+  colnames(WGpred) <- newtimes
+  mean.WG <- apply(WGpred, FUN="mean", MARGIN=2)
   ##Estimateur de Pohar-Perme 
   
   for(j in strata_names){
@@ -4041,9 +4361,9 @@ simulate_iteration <- function(i){
   
   ### genweibull
   
-  WGpredval <- predict(WG.model, newtimes = newtimes, newdata = data_valid)$predictions
-  
-  mean.WGval <- apply(WGpredval, FUN="mean", MARGIN=2)
+  # WGpredval <- predict(WG.model, newtimes = newtimes, newdata = data_valid)$predictions
+  # 
+  # mean.WGval <- apply(WGpredval, FUN="mean", MARGIN=2)
   
   ### Estimateur de Pohar-Perme 
   
@@ -4138,7 +4458,7 @@ simulate_iteration <- function(i){
     
     data_valid_var <- get(paste0("data_valid_", j))
     
-    WGpredvalS <- predict(WG.model, newtimes = newtimes, newdata = data_valid_var)$predictions
+    WGpredvalS <- predict(get(paste0("WG.model_",j)), newtimes = newtimes, newdata = data_valid_var)$predictions
     
     mean.WGvalS <- apply(WGpredvalS, FUN="mean", MARGIN=2)
     
@@ -4146,6 +4466,24 @@ simulate_iteration <- function(i){
     assign(paste0("mean.WGval_", j), mean.WGvalS)
   }
   
+  rowid <- seq_len(nrow(data_valid))
+  pred_list <- list()
+  groups <- sort(unique(data_valid$sex.organ))
+  correstab <- setNames(c("HR", "HC", "FR", "FC"),groups)
+  for (k in groups) {
+    idx <- which(data_valid$sex.organ == k)
+    
+    pred_list[[as.character(k)]] <- data.frame(
+      rowid = rowid[idx],
+      pred = get(paste0("WGpredval_", correstab[k])) )
+  }
+  
+  # Combine all predictions into one dataframe
+  WGpredval <- do.call(rbind, pred_list)
+  WGpredval <- WGpredval[order(WGpredval$rowid), ]
+  WGpredval$rowid <- NULL
+  colnames(WGpredval) <- newtimes
+  mean.WGval <- apply(WGpredval, FUN="mean", MARGIN=2)
   ##Estimateur de Pohar-Perme 
   
   for(j in strata_names){
@@ -4207,9 +4545,17 @@ simulate_iteration <- function(i){
   m2.2value <- paste0(m2.2, failedindic2.2)
   m2.4value <- paste0(m2.4, failedindic2.4)
   
+  flex1.2.coeff <- flex.model1.2$coefficients
+  flex1.4.coeff <- flex.model1.4$coefficients
+  
+  flex2.2.coeff <- flex.model2.2$coefficients
+  flex2.4.coeff <- flex.model2.4$coefficients
+  
   paramsCV <- as.data.frame(c(inter = inter,size = size,decay = decay, maxit = maxit,
-                              MaxNWts = MaxNWts, m1.2 = m1.2value, m1.4 = m1.4value, 
-                              m2.2 = m2.2value, m2.4 = m2.4value, logcoeffWG = logcoeffWG))
+                              MaxNWts = MaxNWts, m1.2 = m1.2value, coeff1.2 = flex1.2.coeff, m1.4 = m1.4value, 
+                              coeff1.4 = flex1.4.coeff, m2.2 = m2.2value, coeff2.2 = flex2.2.coeff,
+                              m2.4 = m2.4value, coeff2.4 = flex2.4.coeff, logcoeffHC = logcoeffWG[1,], 
+                              logcoeffHR = logcoeffWG[2,], logcoeffFC = logcoeffWG[3,], logcoeffFR = logcoeffWG[4,] ))
   
   write.table(paramsCV,  paste0(path0, "PARAM/",i,"_param.csv"))
   
@@ -4230,14 +4576,238 @@ simulate_iteration <- function(i){
   flex2.2.loglik <- unname(flex.model2.2$loglik[1])
   flex2.4.loglik <- unname(flex.model2.4$loglik[1])
   
-  WG.loglik <- unname(WG.model$loglik[1])
+  WG.loglik <- unname(WG.model_FC$loglik[1] + WG.model_HR$loglik[1] 
+                      + WG.model_HC$loglik[1] + WG.model_FR$loglik[1])
+  WG_HC.loglik <- unname(WG.model_HC$loglik[1])
+  WG_HR.loglik <- unname(WG.model_HR$loglik[1])
+  WG_FC.loglik <- unname(WG.model_FC$loglik[1])
+  WG_FR.loglik <- unname(WG.model_FR$loglik[1])
   
   logliks <- as.data.frame(c(plann = plann.loglik, flex1.2 = flex1.2.loglik,
                              flex1.4 = flex1.4.loglik, flex2.2 = flex2.2.loglik,
-                             flex2.4 = flex2.4.loglik, WG = WG.loglik))
+                             flex2.4 = flex2.4.loglik, WG = WG.loglik,
+                             WG_HC = WG_HC.loglik, WG_HR = WG_HR.loglik, 
+                             WG_FC = WG_FC.loglik, WG_FR = WG_FR.loglik ))
   
-  write.table(logliks,  paste0(path0, "LOGLIK/",i,"_loglik.csv"))
+  write.table(logliks,  paste0(path0, "LOGLIK/TRAIN/",i,"_loglik.csv"))
   
+  #############
+  ### VALIDATION 
+  #############
+  
+  event_valid <- data_valid$status 
+  time_valid <- data_valid$times 
+  
+  hP_valid <- c()
+  
+  for(i in 1:dim(data_valid)[1] ){
+    hP_valid <- c(hP_valid, expectedhaz(slopop, age=data_valid[i, "age"], sex=data_valid[i, "sex"],
+                                        year=data_valid[i, "year"], time=time_valid[i]) )
+  }
+  ### plann
+  
+  loglikval_plann <- plannpredval$loglik
+  
+  
+  ### flex 1
+  #1.2
+  beta_est1.2 <- flex1.2.coeff[1:(length(flex1.2.coeff)-(flex.model1.2$m+2))]
+  gamma_est1.2 <- tail(flex1.2.coeff, flex.model1.2$m+2)
+  cova_valid <- as.matrix(data_valid[,names(beta_est1.2)])
+  
+  
+  loglikval_1.2 <- sum( event_valid * log(hP_valid + (1/time_valid)*splinecubeP(time_valid, gamma_est1.2, flex.model1.2$m, flex.model1.2$mpos)$spln *
+                                            exp(splinecube(time_valid, gamma_est1.2, flex.model1.2$m, flex.model1.2$mpos)$spln + cova_valid %*% beta_est1.2) ) -
+                          exp(splinecube(time_valid, gamma_est1.2, flex.model1.2$m, flex.model1.2$mpos)$spln 
+                              + cova_valid %*% beta_est1.2) )
+  #1.4
+  
+  beta_est1.4 <- flex1.4.coeff[1:(length(flex1.4.coeff)-(flex.model1.4$m+2))]
+  gamma_est1.4 <- tail(flex1.4.coeff, flex.model1.4$m+2)
+  cova_valid <- as.matrix(data_valid[,names(beta_est1.4)])
+  
+  
+  
+  loglikval_1.4 <- sum( event_valid * log(hP_valid + (1/time_valid)*splinecubeP(time_valid, gamma_est1.4, flex.model1.4$m, flex.model1.4$mpos)$spln *
+                                            exp(splinecube(time_valid, gamma_est1.4, flex.model1.4$m, flex.model1.4$mpos)$spln + cova_valid %*% beta_est1.4) ) -
+                          exp(splinecube(time_valid, gamma_est1.4, flex.model1.4$m, flex.model1.4$mpos)$spln 
+                              + cova_valid %*% beta_est1.4) )
+  
+  ### flex 2
+  #2.2
+  beta_est2.2 <- c()
+  gamma_est2.2 <- c()
+  for (i in 1:length(flex.model2.2$correstab)) {
+    beta_est2.2 <- c(beta_est2.2,unname( flex.model2.2$coefficients[(1:(dim(flex.model2.2$x)[2])+(dim(flex.model2.2$x)[2]+flex.model2.2$m+2)*(i-1))] ) ) 
+    gamma_est2.2 <- c(gamma_est2.2, unname( flex.model2.2$coefficients[(dim(flex.model2.2$x)[2]+1):(dim(flex.model2.2$x)[2]+ (flex.model2.2$m+2)) +(dim(flex.model2.2$x)[2]+flex.model2.2$m+2)*(i-1)] ))
+  }
+  value <- c()
+  K <- sort(unique(data_valid$sex.organ))
+  cova_valid2 <- cova_valid[,-((dim(cova_valid)[2]-1):dim(cova_valid)[2])]
+  for(k in K){
+    betak <- beta_est2.2[(1+(k-1)*3):(3+(k-1)*3)]
+    gammak <- gamma_est2.2[(1+(k-1)*(flex.model2.2$m+2)):(flex.model2.2$m+2+(k-1)*(flex.model2.2$m+2))]
+    idx <- data_valid$sex.organ == k
+    
+    timek <- time_valid[idx]
+    eventk <- event_valid[idx]
+    hPk <- hP_valid[idx]
+    covak <- cova_valid2[idx, , drop = FALSE]
+    # wk <- w[idx]
+    
+    splk <- splinecube(timek, gammak, flex.model2.2$m, flex.model2.2$mpos[,k])$spln
+    splkP <- splinecubeP(timek, gammak, flex.model2.2$m, flex.model2.2$mpos[,k])$spln
+    linpred <- splk + as.matrix(covak) %*% as.matrix(betak)
+    
+    value_strate <- sum((eventk * log(hPk + (1 / timek) * splkP * exp(linpred)) - exp(linpred)))
+    
+    
+    value <- c(value, value_strate)
+  }
+  
+  loglikval_2.2 <- sum(value)
+  #2.4
+  
+  beta_est2.4 <- c()
+  gamma_est2.4 <- c()
+  for (i in 1:length(flex.model2.4$correstab)) {
+    beta_est2.4 <- c(beta_est2.4,unname( flex.model2.4$coefficients[(1:(dim(flex.model2.4$x)[2])+(dim(flex.model2.4$x)[2]+flex.model2.4$m+2)*(i-1))] ) ) 
+    gamma_est2.4 <- c(gamma_est2.4, unname( flex.model2.4$coefficients[(dim(flex.model2.4$x)[2]+1):(dim(flex.model2.4$x)[2]+ (flex.model2.4$m+2)) +(dim(flex.model2.4$x)[2]+flex.model2.4$m+2)*(i-1)] ))
+  }
+  value <- c()
+  K <- sort(unique(data_valid$sex.organ))
+  cova_valid2 <- cova_valid[,-((dim(cova_valid)[2]-1):dim(cova_valid)[2])]
+  for(k in K){
+    betak <- beta_est2.4[(1+(k-1)*3):(3+(k-1)*3)]
+    gammak <- gamma_est2.4[(1+(k-1)*(flex.model2.4$m+2)):(flex.model2.4$m+2+(k-1)*(flex.model2.4$m+2))]
+    idx <- data_valid$sex.organ == k
+    
+    timek <- time_valid[idx]
+    eventk <- event_valid[idx]
+    hPk <- hP_valid[idx]
+    covak <- cova_valid2[idx, , drop = FALSE]
+    # wk <- w[idx]
+    
+    splk <- splinecube(timek, gammak, flex.model2.4$m, flex.model2.4$mpos[,k])$spln
+    splkP <- splinecubeP(timek, gammak, flex.model2.4$m, flex.model2.4$mpos[,k])$spln
+    linpred <- splk + as.matrix(covak) %*% as.matrix(betak)
+    
+    value_strate <- sum((eventk * log(hPk + (1 / timek) * splkP * exp(linpred)) - exp(linpred)))
+    
+    
+    value <- c(value, value_strate)
+  }
+  
+  loglikval_2.4 <- sum(value)
+  ### WG
+  #HC
+  beta_est_HC <- logcoeffWGHC[1:(length(logcoeffWGHC)-3)]
+  param_est_HC <- tail(logcoeffWGHC,3)
+  sigma_HC <- param_est_HC[1]
+  nu_HC <- param_est_HC[2]
+  theta_HC <-param_est_HC[3]
+  
+  event_HC <- data_valid_HC$status 
+  time_HC <- data_valid_HC$times 
+  cova_HC <- data_valid_HC[,names(beta_est_HC)]
+  
+  hP_HC <- c()
+  
+  for(i in 1:dim(data_valid_HC)[1] ){
+    hP_HC <- c(hP_HC, expectedhaz(slopop, age=data_valid_HC[i, "age"], sex=data_valid_HC[i, "sex"],
+                                  year=data_valid_HC[i, "year"], time=time_HC[i]) )
+  }
+  
+  holdHC <- hP_HC+exp(as.matrix(cova_HC)%*%beta_est_HC)*(
+    (1/theta_HC)*(1+(time_HC/sigma_HC)^nu_HC)^((1/theta_HC)-1)*(nu_HC/sigma_HC)*(time_HC/sigma_HC)^(nu_HC-1) ) 
+  holdHC <- ifelse(holdHC < 0, 10e-6, holdHC)
+  
+  loglikval_WG_HC <- sum( event_HC*log(holdHC)
+                          + exp(as.matrix(cova_HC)%*%beta_est_HC)*(1-(1+(time_HC/sigma_HC)^nu_HC)^(1/theta_HC))  ) 
+  
+  
+  #HR 
+  beta_est_HR <- logcoeffWGHR[1:(length(logcoeffWGHR)-3)]
+  param_est_HR <- tail(logcoeffWGHR,3)
+  sigma_HR <- param_est_HR[1]
+  nu_HR <- param_est_HR[2]
+  theta_HR <-param_est_HR[3]
+  
+  event_HR <- data_valid_HR$status 
+  time_HR <- data_valid_HR$times 
+  cova_HR <- data_valid_HR[,names(beta_est_HR)]
+  
+  hP_HR <- c()
+  
+  for(i in 1:dim(data_valid_HR)[1] ){
+    hP_HR <- c(hP_HR, expectedhaz(slopop, age=data_valid_HR[i, "age"], sex=data_valid_HR[i, "sex"],
+                                  year=data_valid_HR[i, "year"], time=time_HR[i]) )
+  }
+  
+  holdHR <- hP_HR+exp(as.matrix(cova_HR)%*%beta_est_HR)*(
+    (1/theta_HR)*(1+(time_HR/sigma_HR)^nu_HR)^((1/theta_HR)-1)*(nu_HR/sigma_HR)*(time_HR/sigma_HR)^(nu_HR-1) ) 
+  holdHR <- ifelse(holdHR < 0, 10e-6, holdHR)
+  loglikval_WG_HR <- sum( event_HR*log(holdHR)
+                          + exp(as.matrix(cova_HR)%*%beta_est_HR)*(1-(1+(time_HR/sigma_HR)^nu_HR)^(1/theta_HR))  ) 
+  
+  #FC 
+  beta_est_FC <- logcoeffWGFC[1:(length(logcoeffWGFC)-3)]
+  param_est_FC <- tail(logcoeffWGFC,3)
+  sigma_FC <- param_est_FC[1]
+  nu_FC <- param_est_FC[2]
+  theta_FC <-param_est_FC[3]
+  
+  event_FC <- data_valid_FC$status 
+  time_FC <- data_valid_FC$times 
+  cova_FC <- data_valid_FC[,names(beta_est_FC)]
+  
+  hP_FC <- c()
+  
+  for(i in 1:dim(data_valid_FC)[1] ){
+    hP_FC <- c(hP_FC, expectedhaz(slopop, age=data_valid_FC[i, "age"], sex=data_valid_FC[i, "sex"],
+                                  year=data_valid_FC[i, "year"], time=time_FC[i]) )
+  }
+  
+  holdFC <- hP_FC+exp(as.matrix(cova_FC)%*%beta_est_FC)*(
+    (1/theta_FC)*(1+(time_FC/sigma_FC)^nu_FC)^((1/theta_FC)-1)*(nu_FC/sigma_FC)*(time_FC/sigma_FC)^(nu_FC-1) ) 
+  holdFC <- ifelse(holdFC < 0, 10e-6, holdFC)
+  loglikval_WG_FC <- sum( event_FC*log(holdFC)
+                          + exp(as.matrix(cova_FC)%*%beta_est_FC)*(1-(1+(time_FC/sigma_FC)^nu_FC)^(1/theta_FC))  ) 
+  
+  #FR 
+  beta_est_FR <- logcoeffWGFR[1:(length(logcoeffWGFR)-3)]
+  param_est_FR <- tail(logcoeffWGFR,3)
+  sigma_FR <- param_est_FR[1]
+  nu_FR <- param_est_FR[2]
+  theta_FR <-param_est_FR[3]
+  
+  event_FR <- data_valid_FR$status 
+  time_FR <- data_valid_FR$times 
+  cova_FR <- data_valid_FR[,names(beta_est_FR)]
+  
+  hP_FR <- c()
+  
+  for(i in 1:dim(data_valid_FR)[1] ){
+    hP_FR <- c(hP_FR, expectedhaz(slopop, age=data_valid_FR[i, "age"], sex=data_valid_FR[i, "sex"],
+                                  year=data_valid_FR[i, "year"], time=time_FR[i]) )
+  }
+  
+  holdFR <- hP_FR+exp(as.matrix(cova_FR)%*%beta_est_FR)*(
+    (1/theta_FR)*(1+(time_FR/sigma_FR)^nu_FR)^((1/theta_FR)-1)*(nu_FR/sigma_FR)*(time_FR/sigma_FR)^(nu_FR-1) ) 
+  holdFR <- ifelse(holdFR < 0, 10e-6, holdFR)
+  loglikval_WG_FR <- sum( event_FR*log(holdFR)
+                          + exp(as.matrix(cova_FR)%*%beta_est_FR)*(1-(1+(time_FR/sigma_FR)^nu_FR)^(1/theta_FR))  ) 
+  
+  loglikval_WG <- loglikval_WG_HC + loglikval_WG_HR + loglikval_WG_FC + loglikval_WG_FR
+  
+  ############ enregistrement
+  logliksval <- as.data.frame(c(plann = loglikval_plann, flex1.2 = loglikval_1.2,
+                                flex1.4 = loglikval_1.4, flex2.2 = loglikval_2.2,
+                                flex2.4 = loglikval_2.4, WG = loglikval_WG,
+                                WG_HC = loglikval_WG_HC, WG_HR = loglikval_WG_HR, 
+                                WG_FC = loglikval_WG_FC, WG_FR = loglikval_WG_FR ))
+  
+  write.table(logliksval,  paste0(path0, "LOGLIK/VALID/",i,"_loglikval.csv"))
   ##################DATA TRAIN
   #################################### MOYENNES
   #######THEO
@@ -4825,10 +5395,12 @@ rm(list = ls(envir = .GlobalEnv), envir = .GlobalEnv)
 ########### CALC_INDICATEURS
 
 ### 3000IndSTA
+date_launch <- Sys.Date()
+
 library(parallel)
 library(doParallel)
 
-path0 <- "~/Documents/Simulations/Simulations mai 2025/N3000/Output simulations_N3000_NPH_HC/"
+path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N3000/Output simulations_N3000_NPH_HC/"
 
 indic = c()
 for(i in 1:1000){
@@ -6534,7 +7106,7 @@ for(l in c("P","F1.2","F1.4","F2.2","F2.4","WG")){
 print(Sys.time()-start)
 
 
-save.image("~/Documents/Simulations/Simulations mai 2025/Résultats/1000ite_3000ind_NPH_HC_14_05.Rdata")
+save.image(paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/",length(iterations),"ite_3000ind_",date_launch,".Rdata"))
 
 
 rm(list = ls(envir = .GlobalEnv), envir = .GlobalEnv)
@@ -6553,10 +7125,10 @@ library(survivalNET)
 library(survivalPLANN)
 library(parallel)
 library(doParallel)
+date_launch <- Sys.Date()
 
-
-path0 <- "~/Documents/Simulations/Simulations mai 2025/N5000/Output simulations_N5000_NPH_HC/"
-path1 <- "~/Documents/Simulations/BASES/"
+path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N5000/Output simulations_N5000_NPH_HC/"
+path1 <- "~/Documents/Rstudio/Simulations/BASES/"
 ############
 
 #importation des données
@@ -6958,13 +7530,28 @@ simulate_iteration <- function(i){
                         decay=decay, maxit=maxit, MaxNWts=MaxNWts)
   
   ### Weibull Généralisé 
+  ## modèle "parfait" donc en NPH on va estimer un modèle par strate.
   
-  WG.model <- survivalNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + sex01 + colon +
-                            ratetable(age, year, sexchara), data = data_train,
-                          ratetable=slopop, dist = "genweibull")
+  WG.model_HC <- survivalNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + 
+                               ratetable(age, year, sexchara), data = data_train_HC,
+                             ratetable=slopop, dist = "genweibull")
+  WG.model_HR <- survivalNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + 
+                               ratetable(age, year, sexchara), data = data_train_HR,
+                             ratetable=slopop, dist = "genweibull")
+  WG.model_FC <- survivalNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + 
+                               ratetable(age, year, sexchara), data = data_train_FC,
+                             ratetable=slopop, dist = "genweibull")
+  WG.model_FR <- survivalNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 +
+                               ratetable(age, year, sexchara), data = data_train_FR,
+                             ratetable=slopop, dist = "genweibull")
   
-  logcoeffWG <- tail(WG.model$coefficients, 3)
   
+  logcoeffWGHC <- WG.model_HC$coefficients
+  logcoeffWGHR <- WG.model_HR$coefficients
+  logcoeffWGFC <- WG.model_FC$coefficients
+  logcoeffWGFR <- WG.model_FR$coefficients
+  
+  logcoeffWG <- rbind(logcoeffWGHC, logcoeffWGHR, logcoeffWGFC ,logcoeffWGFR)
   ################## flex1
   ########### 2 noeuds
   m1.2_original <- m1.2
@@ -7134,10 +7721,10 @@ simulate_iteration <- function(i){
   mean.flex2.4  <- apply(flexpred2.4 , FUN="mean", MARGIN=2)
   ### genweibull
   
-  WGpred <- predict(WG.model, newtimes = newtimes)$predictions
-  
-  mean.WG <- apply(WGpred, FUN="mean", MARGIN=2)
-  
+  # WGpred <- predict(WG.model, newtimes = newtimes)$predictions
+  # 
+  # mean.WG <- apply(WGpred, FUN="mean", MARGIN=2)
+  # 
   
   ### Estimateur de Pohar-Perme 
   
@@ -7228,11 +7815,12 @@ simulate_iteration <- function(i){
   
   ### genweibull
   
+  
   for(j in strata_names){
     
     data_train_var <- get(paste0("data_train_", j))
     
-    WGpredS <- predict(WG.model, newtimes = newtimes, newdata = data_train_var)$predictions
+    WGpredS <- predict(get(paste0("WG.model_",j)), newtimes = newtimes, newdata = data_train_var)$predictions
     
     mean.WGS <- apply(WGpredS, FUN="mean", MARGIN=2)
     
@@ -7240,7 +7828,24 @@ simulate_iteration <- function(i){
     assign(paste0("mean.WG_", j), mean.WGS)
   }
   
+  rowid <- seq_len(nrow(data_train))
+  pred_list <- list()
+  groups <- sort(unique(data_train$sex.organ))
+  correstab <- setNames(c("HR", "HC", "FR", "FC"),groups)
+  for (k in groups) {
+    idx <- which(data_train$sex.organ == k)
+    
+    pred_list[[as.character(k)]] <- data.frame(
+      rowid = rowid[idx],
+      pred = get(paste0("WGpred_", correstab[k])) )
+  }
   
+  # Combine all predictions into one dataframe
+  WGpred <- do.call(rbind, pred_list)
+  WGpred <- WGpred[order(WGpred$rowid), ]
+  WGpred$rowid <- NULL
+  colnames(WGpred) <- newtimes
+  mean.WG <- apply(WGpred, FUN="mean", MARGIN=2)
   ##Estimateur de Pohar-Perme 
   
   for(j in strata_names){
@@ -7300,9 +7905,9 @@ simulate_iteration <- function(i){
   
   ### genweibull
   
-  WGpredval <- predict(WG.model, newtimes = newtimes, newdata = data_valid)$predictions
-  
-  mean.WGval <- apply(WGpredval, FUN="mean", MARGIN=2)
+  # WGpredval <- predict(WG.model, newtimes = newtimes, newdata = data_valid)$predictions
+  # 
+  # mean.WGval <- apply(WGpredval, FUN="mean", MARGIN=2)
   
   ### Estimateur de Pohar-Perme 
   
@@ -7397,7 +8002,7 @@ simulate_iteration <- function(i){
     
     data_valid_var <- get(paste0("data_valid_", j))
     
-    WGpredvalS <- predict(WG.model, newtimes = newtimes, newdata = data_valid_var)$predictions
+    WGpredvalS <- predict(get(paste0("WG.model_",j)), newtimes = newtimes, newdata = data_valid_var)$predictions
     
     mean.WGvalS <- apply(WGpredvalS, FUN="mean", MARGIN=2)
     
@@ -7405,6 +8010,24 @@ simulate_iteration <- function(i){
     assign(paste0("mean.WGval_", j), mean.WGvalS)
   }
   
+  rowid <- seq_len(nrow(data_valid))
+  pred_list <- list()
+  groups <- sort(unique(data_valid$sex.organ))
+  correstab <- setNames(c("HR", "HC", "FR", "FC"),groups)
+  for (k in groups) {
+    idx <- which(data_valid$sex.organ == k)
+    
+    pred_list[[as.character(k)]] <- data.frame(
+      rowid = rowid[idx],
+      pred = get(paste0("WGpredval_", correstab[k])) )
+  }
+  
+  # Combine all predictions into one dataframe
+  WGpredval <- do.call(rbind, pred_list)
+  WGpredval <- WGpredval[order(WGpredval$rowid), ]
+  WGpredval$rowid <- NULL
+  colnames(WGpredval) <- newtimes
+  mean.WGval <- apply(WGpredval, FUN="mean", MARGIN=2)
   ##Estimateur de Pohar-Perme 
   
   for(j in strata_names){
@@ -7466,9 +8089,17 @@ simulate_iteration <- function(i){
   m2.2value <- paste0(m2.2, failedindic2.2)
   m2.4value <- paste0(m2.4, failedindic2.4)
   
+  flex1.2.coeff <- flex.model1.2$coefficients
+  flex1.4.coeff <- flex.model1.4$coefficients
+  
+  flex2.2.coeff <- flex.model2.2$coefficients
+  flex2.4.coeff <- flex.model2.4$coefficients
+  
   paramsCV <- as.data.frame(c(inter = inter,size = size,decay = decay, maxit = maxit,
-                              MaxNWts = MaxNWts, m1.2 = m1.2value, m1.4 = m1.4value, 
-                              m2.2 = m2.2value, m2.4 = m2.4value, logcoeffWG = logcoeffWG))
+                              MaxNWts = MaxNWts, m1.2 = m1.2value, coeff1.2 = flex1.2.coeff, m1.4 = m1.4value, 
+                              coeff1.4 = flex1.4.coeff, m2.2 = m2.2value, coeff2.2 = flex2.2.coeff,
+                              m2.4 = m2.4value, coeff2.4 = flex2.4.coeff, logcoeffHC = logcoeffWG[1,], 
+                              logcoeffHR = logcoeffWG[2,], logcoeffFC = logcoeffWG[3,], logcoeffFR = logcoeffWG[4,] ))
   
   write.table(paramsCV,  paste0(path0, "PARAM/",i,"_param.csv"))
   
@@ -7489,14 +8120,238 @@ simulate_iteration <- function(i){
   flex2.2.loglik <- unname(flex.model2.2$loglik[1])
   flex2.4.loglik <- unname(flex.model2.4$loglik[1])
   
-  WG.loglik <- unname(WG.model$loglik[1])
+  WG.loglik <- unname(WG.model_FC$loglik[1] + WG.model_HR$loglik[1] 
+                      + WG.model_HC$loglik[1] + WG.model_FR$loglik[1])
+  WG_HC.loglik <- unname(WG.model_HC$loglik[1])
+  WG_HR.loglik <- unname(WG.model_HR$loglik[1])
+  WG_FC.loglik <- unname(WG.model_FC$loglik[1])
+  WG_FR.loglik <- unname(WG.model_FR$loglik[1])
   
   logliks <- as.data.frame(c(plann = plann.loglik, flex1.2 = flex1.2.loglik,
                              flex1.4 = flex1.4.loglik, flex2.2 = flex2.2.loglik,
-                             flex2.4 = flex2.4.loglik, WG = WG.loglik))
+                             flex2.4 = flex2.4.loglik, WG = WG.loglik,
+                             WG_HC = WG_HC.loglik, WG_HR = WG_HR.loglik, 
+                             WG_FC = WG_FC.loglik, WG_FR = WG_FR.loglik ))
   
-  write.table(logliks,  paste0(path0, "LOGLIK/",i,"_loglik.csv"))
+  write.table(logliks,  paste0(path0, "LOGLIK/TRAIN/",i,"_loglik.csv"))
   
+  #############
+  ### VALIDATION 
+  #############
+  
+  event_valid <- data_valid$status 
+  time_valid <- data_valid$times 
+  
+  hP_valid <- c()
+  
+  for(i in 1:dim(data_valid)[1] ){
+    hP_valid <- c(hP_valid, expectedhaz(slopop, age=data_valid[i, "age"], sex=data_valid[i, "sex"],
+                                        year=data_valid[i, "year"], time=time_valid[i]) )
+  }
+  ### plann
+  
+  loglikval_plann <- plannpredval$loglik
+  
+  
+  ### flex 1
+  #1.2
+  beta_est1.2 <- flex1.2.coeff[1:(length(flex1.2.coeff)-(flex.model1.2$m+2))]
+  gamma_est1.2 <- tail(flex1.2.coeff, flex.model1.2$m+2)
+  cova_valid <- as.matrix(data_valid[,names(beta_est1.2)])
+  
+  
+  loglikval_1.2 <- sum( event_valid * log(hP_valid + (1/time_valid)*splinecubeP(time_valid, gamma_est1.2, flex.model1.2$m, flex.model1.2$mpos)$spln *
+                                            exp(splinecube(time_valid, gamma_est1.2, flex.model1.2$m, flex.model1.2$mpos)$spln + cova_valid %*% beta_est1.2) ) -
+                          exp(splinecube(time_valid, gamma_est1.2, flex.model1.2$m, flex.model1.2$mpos)$spln 
+                              + cova_valid %*% beta_est1.2) )
+  #1.4
+  
+  beta_est1.4 <- flex1.4.coeff[1:(length(flex1.4.coeff)-(flex.model1.4$m+2))]
+  gamma_est1.4 <- tail(flex1.4.coeff, flex.model1.4$m+2)
+  cova_valid <- as.matrix(data_valid[,names(beta_est1.4)])
+  
+  
+  
+  loglikval_1.4 <- sum( event_valid * log(hP_valid + (1/time_valid)*splinecubeP(time_valid, gamma_est1.4, flex.model1.4$m, flex.model1.4$mpos)$spln *
+                                            exp(splinecube(time_valid, gamma_est1.4, flex.model1.4$m, flex.model1.4$mpos)$spln + cova_valid %*% beta_est1.4) ) -
+                          exp(splinecube(time_valid, gamma_est1.4, flex.model1.4$m, flex.model1.4$mpos)$spln 
+                              + cova_valid %*% beta_est1.4) )
+  
+  ### flex 2
+  #2.2
+  beta_est2.2 <- c()
+  gamma_est2.2 <- c()
+  for (i in 1:length(flex.model2.2$correstab)) {
+    beta_est2.2 <- c(beta_est2.2,unname( flex.model2.2$coefficients[(1:(dim(flex.model2.2$x)[2])+(dim(flex.model2.2$x)[2]+flex.model2.2$m+2)*(i-1))] ) ) 
+    gamma_est2.2 <- c(gamma_est2.2, unname( flex.model2.2$coefficients[(dim(flex.model2.2$x)[2]+1):(dim(flex.model2.2$x)[2]+ (flex.model2.2$m+2)) +(dim(flex.model2.2$x)[2]+flex.model2.2$m+2)*(i-1)] ))
+  }
+  value <- c()
+  K <- sort(unique(data_valid$sex.organ))
+  cova_valid2 <- cova_valid[,-((dim(cova_valid)[2]-1):dim(cova_valid)[2])]
+  for(k in K){
+    betak <- beta_est2.2[(1+(k-1)*3):(3+(k-1)*3)]
+    gammak <- gamma_est2.2[(1+(k-1)*(flex.model2.2$m+2)):(flex.model2.2$m+2+(k-1)*(flex.model2.2$m+2))]
+    idx <- data_valid$sex.organ == k
+    
+    timek <- time_valid[idx]
+    eventk <- event_valid[idx]
+    hPk <- hP_valid[idx]
+    covak <- cova_valid2[idx, , drop = FALSE]
+    # wk <- w[idx]
+    
+    splk <- splinecube(timek, gammak, flex.model2.2$m, flex.model2.2$mpos[,k])$spln
+    splkP <- splinecubeP(timek, gammak, flex.model2.2$m, flex.model2.2$mpos[,k])$spln
+    linpred <- splk + as.matrix(covak) %*% as.matrix(betak)
+    
+    value_strate <- sum((eventk * log(hPk + (1 / timek) * splkP * exp(linpred)) - exp(linpred)))
+    
+    
+    value <- c(value, value_strate)
+  }
+  
+  loglikval_2.2 <- sum(value)
+  #2.4
+  
+  beta_est2.4 <- c()
+  gamma_est2.4 <- c()
+  for (i in 1:length(flex.model2.4$correstab)) {
+    beta_est2.4 <- c(beta_est2.4,unname( flex.model2.4$coefficients[(1:(dim(flex.model2.4$x)[2])+(dim(flex.model2.4$x)[2]+flex.model2.4$m+2)*(i-1))] ) ) 
+    gamma_est2.4 <- c(gamma_est2.4, unname( flex.model2.4$coefficients[(dim(flex.model2.4$x)[2]+1):(dim(flex.model2.4$x)[2]+ (flex.model2.4$m+2)) +(dim(flex.model2.4$x)[2]+flex.model2.4$m+2)*(i-1)] ))
+  }
+  value <- c()
+  K <- sort(unique(data_valid$sex.organ))
+  cova_valid2 <- cova_valid[,-((dim(cova_valid)[2]-1):dim(cova_valid)[2])]
+  for(k in K){
+    betak <- beta_est2.4[(1+(k-1)*3):(3+(k-1)*3)]
+    gammak <- gamma_est2.4[(1+(k-1)*(flex.model2.4$m+2)):(flex.model2.4$m+2+(k-1)*(flex.model2.4$m+2))]
+    idx <- data_valid$sex.organ == k
+    
+    timek <- time_valid[idx]
+    eventk <- event_valid[idx]
+    hPk <- hP_valid[idx]
+    covak <- cova_valid2[idx, , drop = FALSE]
+    # wk <- w[idx]
+    
+    splk <- splinecube(timek, gammak, flex.model2.4$m, flex.model2.4$mpos[,k])$spln
+    splkP <- splinecubeP(timek, gammak, flex.model2.4$m, flex.model2.4$mpos[,k])$spln
+    linpred <- splk + as.matrix(covak) %*% as.matrix(betak)
+    
+    value_strate <- sum((eventk * log(hPk + (1 / timek) * splkP * exp(linpred)) - exp(linpred)))
+    
+    
+    value <- c(value, value_strate)
+  }
+  
+  loglikval_2.4 <- sum(value)
+  ### WG
+  #HC
+  beta_est_HC <- logcoeffWGHC[1:(length(logcoeffWGHC)-3)]
+  param_est_HC <- tail(logcoeffWGHC,3)
+  sigma_HC <- param_est_HC[1]
+  nu_HC <- param_est_HC[2]
+  theta_HC <-param_est_HC[3]
+  
+  event_HC <- data_valid_HC$status 
+  time_HC <- data_valid_HC$times 
+  cova_HC <- data_valid_HC[,names(beta_est_HC)]
+  
+  hP_HC <- c()
+  
+  for(i in 1:dim(data_valid_HC)[1] ){
+    hP_HC <- c(hP_HC, expectedhaz(slopop, age=data_valid_HC[i, "age"], sex=data_valid_HC[i, "sex"],
+                                  year=data_valid_HC[i, "year"], time=time_HC[i]) )
+  }
+  
+  holdHC <- hP_HC+exp(as.matrix(cova_HC)%*%beta_est_HC)*(
+    (1/theta_HC)*(1+(time_HC/sigma_HC)^nu_HC)^((1/theta_HC)-1)*(nu_HC/sigma_HC)*(time_HC/sigma_HC)^(nu_HC-1) ) 
+  holdHC <- ifelse(holdHC < 0, 10e-6, holdHC)
+  
+  loglikval_WG_HC <- sum( event_HC*log(holdHC)
+                          + exp(as.matrix(cova_HC)%*%beta_est_HC)*(1-(1+(time_HC/sigma_HC)^nu_HC)^(1/theta_HC))  ) 
+  
+  
+  #HR 
+  beta_est_HR <- logcoeffWGHR[1:(length(logcoeffWGHR)-3)]
+  param_est_HR <- tail(logcoeffWGHR,3)
+  sigma_HR <- param_est_HR[1]
+  nu_HR <- param_est_HR[2]
+  theta_HR <-param_est_HR[3]
+  
+  event_HR <- data_valid_HR$status 
+  time_HR <- data_valid_HR$times 
+  cova_HR <- data_valid_HR[,names(beta_est_HR)]
+  
+  hP_HR <- c()
+  
+  for(i in 1:dim(data_valid_HR)[1] ){
+    hP_HR <- c(hP_HR, expectedhaz(slopop, age=data_valid_HR[i, "age"], sex=data_valid_HR[i, "sex"],
+                                  year=data_valid_HR[i, "year"], time=time_HR[i]) )
+  }
+  
+  holdHR <- hP_HR+exp(as.matrix(cova_HR)%*%beta_est_HR)*(
+    (1/theta_HR)*(1+(time_HR/sigma_HR)^nu_HR)^((1/theta_HR)-1)*(nu_HR/sigma_HR)*(time_HR/sigma_HR)^(nu_HR-1) ) 
+  holdHR <- ifelse(holdHR < 0, 10e-6, holdHR)
+  loglikval_WG_HR <- sum( event_HR*log(holdHR)
+                          + exp(as.matrix(cova_HR)%*%beta_est_HR)*(1-(1+(time_HR/sigma_HR)^nu_HR)^(1/theta_HR))  ) 
+  
+  #FC 
+  beta_est_FC <- logcoeffWGFC[1:(length(logcoeffWGFC)-3)]
+  param_est_FC <- tail(logcoeffWGFC,3)
+  sigma_FC <- param_est_FC[1]
+  nu_FC <- param_est_FC[2]
+  theta_FC <-param_est_FC[3]
+  
+  event_FC <- data_valid_FC$status 
+  time_FC <- data_valid_FC$times 
+  cova_FC <- data_valid_FC[,names(beta_est_FC)]
+  
+  hP_FC <- c()
+  
+  for(i in 1:dim(data_valid_FC)[1] ){
+    hP_FC <- c(hP_FC, expectedhaz(slopop, age=data_valid_FC[i, "age"], sex=data_valid_FC[i, "sex"],
+                                  year=data_valid_FC[i, "year"], time=time_FC[i]) )
+  }
+  
+  holdFC <- hP_FC+exp(as.matrix(cova_FC)%*%beta_est_FC)*(
+    (1/theta_FC)*(1+(time_FC/sigma_FC)^nu_FC)^((1/theta_FC)-1)*(nu_FC/sigma_FC)*(time_FC/sigma_FC)^(nu_FC-1) ) 
+  holdFC <- ifelse(holdFC < 0, 10e-6, holdFC)
+  loglikval_WG_FC <- sum( event_FC*log(holdFC)
+                          + exp(as.matrix(cova_FC)%*%beta_est_FC)*(1-(1+(time_FC/sigma_FC)^nu_FC)^(1/theta_FC))  ) 
+  
+  #FR 
+  beta_est_FR <- logcoeffWGFR[1:(length(logcoeffWGFR)-3)]
+  param_est_FR <- tail(logcoeffWGFR,3)
+  sigma_FR <- param_est_FR[1]
+  nu_FR <- param_est_FR[2]
+  theta_FR <-param_est_FR[3]
+  
+  event_FR <- data_valid_FR$status 
+  time_FR <- data_valid_FR$times 
+  cova_FR <- data_valid_FR[,names(beta_est_FR)]
+  
+  hP_FR <- c()
+  
+  for(i in 1:dim(data_valid_FR)[1] ){
+    hP_FR <- c(hP_FR, expectedhaz(slopop, age=data_valid_FR[i, "age"], sex=data_valid_FR[i, "sex"],
+                                  year=data_valid_FR[i, "year"], time=time_FR[i]) )
+  }
+  
+  holdFR <- hP_FR+exp(as.matrix(cova_FR)%*%beta_est_FR)*(
+    (1/theta_FR)*(1+(time_FR/sigma_FR)^nu_FR)^((1/theta_FR)-1)*(nu_FR/sigma_FR)*(time_FR/sigma_FR)^(nu_FR-1) ) 
+  holdFR <- ifelse(holdFR < 0, 10e-6, holdFR)
+  loglikval_WG_FR <- sum( event_FR*log(holdFR)
+                          + exp(as.matrix(cova_FR)%*%beta_est_FR)*(1-(1+(time_FR/sigma_FR)^nu_FR)^(1/theta_FR))  ) 
+  
+  loglikval_WG <- loglikval_WG_HC + loglikval_WG_HR + loglikval_WG_FC + loglikval_WG_FR
+  
+  ############ enregistrement
+  logliksval <- as.data.frame(c(plann = loglikval_plann, flex1.2 = loglikval_1.2,
+                                flex1.4 = loglikval_1.4, flex2.2 = loglikval_2.2,
+                                flex2.4 = loglikval_2.4, WG = loglikval_WG,
+                                WG_HC = loglikval_WG_HC, WG_HR = loglikval_WG_HR, 
+                                WG_FC = loglikval_WG_FC, WG_FR = loglikval_WG_FR ))
+  
+  write.table(logliksval,  paste0(path0, "LOGLIK/VALID/",i,"_loglikval.csv"))
   ##################DATA TRAIN
   #################################### MOYENNES
   #######THEO
@@ -8076,9 +8931,9 @@ rm(list = ls(envir = .GlobalEnv), envir = .GlobalEnv)
 ### 5000IndSTA
 library(parallel)
 library(doParallel)
+date_launch <- Sys.Date()
 
-
-path0 <- "~/Documents/Simulations/Simulations mai 2025/Résultats/N5000_results/NPH/Output Simulations_N5000_NPH_HC/"
+path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N5000_results/NPH/Output Simulations_N5000_NPH_HC/"
 
 indic = c()
 for(i in 1:1000){
@@ -9783,5 +10638,5 @@ for(l in c("P","F1.2","F1.4","F2.2","F2.4","WG")){
 
 print(Sys.time()-start)
 
-save.image("~/Documents/Simulations/Simulations mai 2025/Résultats/1000ite_5000ind_NPH_HC_14_05.Rdata")
+save.image(paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/",length(iterations),"ite_5000ind_",date_launch,".Rdata"))
 ### 5000IndEND

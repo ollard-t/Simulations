@@ -1890,11 +1890,19 @@ S_theo <- colMeans(ALL_theo)
 #importation des données des différents modèles 
 #########
 ##plann
+# ALL_PLANN <- data.frame() 
+# for(k in iterations){
+#   assign(paste0("meanTrainPLANN_", k) , read.csv(paste0(path0, "TRAIN/WHOLE/PLANN/mean_survival/",k,"_mean_PLANN.csv"), sep = ";") )
+#   ALL_PLANN <-rbind(ALL_PLANN, get(paste0("meanTrainPLANN_", k)))
+#   rm(list =paste0("meanTrainPLANN_", k))
+# }
+
 ALL_PLANN <- data.frame() 
 for(k in iterations){
-  assign(paste0("meanTrainPLANN_", k) , read.csv(paste0(path0, "TRAIN/WHOLE/PLANN/mean_survival/",k,"_mean_PLANN.csv"), sep = ";") )
-  ALL_PLANN <-rbind(ALL_PLANN, get(paste0("meanTrainPLANN_", k)))
-  rm(list =paste0("meanTrainPLANN_", k))
+  assign(paste0("indTrainPLANN_", k) , read.csv(paste0(path0, "TRAIN/WHOLE/PLANN/individual_survival/",k,"_ind_PLANN.csv"), sep = ";") )
+  assign(paste0("indTrainPLANN_", k), apply(get(paste0("indTrainPLANN_", k)), mean, MARGIN = 2) ) 
+  ALL_PLANN<-rbind(ALL_PLANN, get(paste0("indTrainPLANN_", k)))
+  rm(list =paste0("indTrainPLANN_", k))
 }
 
 ###flex1
@@ -1997,18 +2005,37 @@ for(j in strata_names){
 ############################################
 
 # PLANN
-
+# 
 for(j in strata_names){
-  assign(paste0("ALL_PLANN_", j),data.frame()) 
+  assign(paste0("ALL_PLANN_", j),data.frame())
 }
 
+# for(k in iterations){
+#   assign(paste0("meanTrainPLANNstr_", k) , read.csv(paste0(path0, "TRAIN/STRATA/PLANN/mean_survival/",k,"mean_plann_strates.csv"), sep = ";", row.names = 1) )
+# 
+#   for(j in strata_names){
+#     assign(paste0("ALL_PLANN_",j) ,rbind(get(paste0("ALL_PLANN_",j)),get(paste0("meanTrainPLANNstr_",k))[paste0("mean.plann_", j),-1]  ) )
+#   }
+#   rm(list =paste0("meanTrainPLANNstr_", k))
+# }
+
 for(k in iterations){
-  assign(paste0("meanTrainPLANNstr_", k) , read.csv(paste0(path0, "TRAIN/STRATA/PLANN/mean_survival/",k,"mean_plann_strates.csv"), sep = ";", row.names = 1) )
-  
+  HC <- read.csv(paste0(path0, "TRAIN/STRATA/PLANN/individual_survival/",k,"_ind_PLANN_HC.csv"), sep = ";")
+  HC <- apply(HC, mean, MARGIN = 2)[-1]
+
+  HR <- read.csv(paste0(path0, "TRAIN/STRATA/PLANN/individual_survival/",k,"_ind_PLANN_HR.csv"), sep = ";")
+  HR <- apply(HR, mean, MARGIN = 2)[-1]
+
+  FC <- read.csv(paste0(path0, "TRAIN/STRATA/PLANN/individual_survival/",k,"_ind_PLANN_FC.csv"), sep = ";")
+  FC <- apply(FC, mean, MARGIN = 2)[-1]
+
+  FR <- read.csv(paste0(path0, "TRAIN/STRATA/PLANN/individual_survival/",k,"_ind_PLANN_FR.csv"), sep = ";")
+  FR <- apply(FR, mean, MARGIN = 2)[-1]
+
   for(j in strata_names){
-    assign(paste0("ALL_PLANN_",j) ,rbind(get(paste0("ALL_PLANN_",j)),get(paste0("meanTrainPLANNstr_",k))[paste0("mean.plann_", j),-1]  ) )
+    assign(paste0("ALL_PLANN_",j) ,rbind(get(paste0("ALL_PLANN_",j)), get(j) ) )
   }
-  rm(list =paste0("meanTrainPLANNstr_", k))
+  rm(list =c("HC", "HR", "FC", "FR"))
 }
 
 ### flex1
@@ -2295,13 +2322,20 @@ S_theoval <- colMeans(ALL_theoval)
 #importation des données des différents modèles 
 #########
 ##plann
+# ALL_PLANNval <- data.frame() 
+# for(k in iterations){
+#   assign(paste0("meanValidPLANN_", k) , read.csv(paste0(path0, "VALID/WHOLE/PLANN/mean_survival/",k,"_mean_PLANNval.csv"), sep = ";") )
+#   ALL_PLANNval <-rbind(ALL_PLANNval, get(paste0("meanValidPLANN_", k)))
+#   rm(list =paste0("meanValidPLANN_", k))
+# }
+
 ALL_PLANNval <- data.frame() 
 for(k in iterations){
-  assign(paste0("meanValidPLANN_", k) , read.csv(paste0(path0, "VALID/WHOLE/PLANN/mean_survival/",k,"_mean_PLANNval.csv"), sep = ";") )
-  ALL_PLANNval <-rbind(ALL_PLANNval, get(paste0("meanValidPLANN_", k)))
-  rm(list =paste0("meanValidPLANN_", k))
+  assign(paste0("indValidPLANN_", k) , read.csv(paste0(path0, "VALID/WHOLE/PLANN/individual_survival/",k,"_ind_PLANNval.csv"), sep = ";") )
+  assign(paste0("indValidPLANN_", k), apply(get(paste0("indValidPLANN_", k)), mean, MARGIN = 2) ) 
+  ALL_PLANNval <-rbind(ALL_PLANNval, get(paste0("indValidPLANN_", k)))
+  rm(list =paste0("indValidPLANN_", k))
 }
-
 ###flex1
 ##2 noeuds
 ALL_flex1.2val <- data.frame()
@@ -2369,8 +2403,8 @@ RMSE_flex2.4val <- sqrt( colMeans( (ALL_flex2.4val - S_theoval[col( ALL_flex2.4v
 biais_WGval <- colMeans( ALL_WGval - S_theoval[col( ALL_WGval)] )
 RMSE_WGval <- sqrt( colMeans( (ALL_WGval - S_theoval[col( ALL_WGval)])^2 ) )
 
-biais_PPval <- colMeans( ALL_PP - S_theoval[col( ALL_PPval)] )
-RMSE_PPval <- sqrt( colMeans( (ALL_PP - S_theoval[col( ALL_PPval)])^2 ) )
+biais_PPval <- colMeans( ALL_PPval - S_theoval[col( ALL_PPval)] )
+RMSE_PPval <- sqrt( colMeans( (ALL_PPval - S_theoval[col( ALL_PPval)])^2 ) )
 #STRATES
 
 ###on récupère les valeurs théoriques moyennes Se(t) 
@@ -2406,13 +2440,32 @@ for(j in strata_names){
   assign(paste0("ALL_PLANNval_", j),data.frame()) 
 }
 
+# for(k in iterations){
+#   assign(paste0("meanValidPLANNstr_", k) , read.csv(paste0(path0, "VALID/STRATA/PLANN/mean_survival/",k,"mean_plannval_strates.csv"), sep = ";", row.names = 1) )
+#   
+#   for(j in strata_names){
+#     assign(paste0("ALL_PLANNval_",j) ,rbind(get(paste0("ALL_PLANNval_",j)),get(paste0("meanValidPLANNstr_",k))[paste0("mean.plannval_", j),-1]  ) )
+#   }
+#   rm(list =paste0("meanValidPLANNstr_", k))
+# }
+
 for(k in iterations){
-  assign(paste0("meanValidPLANNstr_", k) , read.csv(paste0(path0, "VALID/STRATA/PLANN/mean_survival/",k,"mean_plannval_strates.csv"), sep = ";", row.names = 1) )
-  
+  HC <- read.csv(paste0(path0, "VALID/STRATA/PLANN/individual_survival/",k,"_ind_PLANNval_HC.csv"), sep = ";")
+  HC <- apply(HC, mean, MARGIN = 2)[-1]
+
+  HR <- read.csv(paste0(path0, "VALID/STRATA/PLANN/individual_survival/",k,"_ind_PLANNval_HR.csv"), sep = ";")
+  HR <- apply(HR, mean, MARGIN = 2)[-1]
+
+  FC <- read.csv(paste0(path0, "VALID/STRATA/PLANN/individual_survival/",k,"_ind_PLANNval_FC.csv"), sep = ";")
+  FC <- apply(FC, mean, MARGIN = 2)[-1]
+
+  FR <- read.csv(paste0(path0, "VALID/STRATA/PLANN/individual_survival/",k,"_ind_PLANNval_FR.csv"), sep = ";")
+  FR <- apply(FR, mean, MARGIN = 2)[-1]
+
   for(j in strata_names){
-    assign(paste0("ALL_PLANNval_",j) ,rbind(get(paste0("ALL_PLANNval_",j)),get(paste0("meanValidPLANNstr_",k))[paste0("mean.plannval_", j),-1]  ) )
+    assign(paste0("ALL_PLANNval_",j) ,rbind(get(paste0("ALL_PLANNval_",j)), get(j) ) )
   }
-  rm(list =paste0("meanValidPLANNstr_", k))
+  rm(list =c("HC", "HR", "FC", "FR"))
 }
 
 ### flex1
@@ -5445,9 +5498,10 @@ S_theo <- colMeans(ALL_theo)
 ##plann
 ALL_PLANN <- data.frame() 
 for(k in iterations){
-  assign(paste0("meanTrainPLANN_", k) , read.csv(paste0(path0, "TRAIN/WHOLE/PLANN/mean_survival/",k,"_mean_PLANN.csv"), sep = ";") )
-  ALL_PLANN <-rbind(ALL_PLANN, get(paste0("meanTrainPLANN_", k)))
-  rm(list =paste0("meanTrainPLANN_", k))
+  assign(paste0("indTrainPLANN_", k) , read.csv(paste0(path0, "TRAIN/WHOLE/PLANN/individual_survival/",k,"_ind_PLANN.csv"), sep = ";") )
+  assign(paste0("indTrainPLANN_", k), apply(get(paste0("indTrainPLANN_", k)), mean, MARGIN = 2) ) 
+  ALL_PLANN<-rbind(ALL_PLANN, get(paste0("indTrainPLANN_", k)))
+  rm(list =paste0("indTrainPLANN_", k))
 }
 
 ###flex1
@@ -5556,12 +5610,22 @@ for(j in strata_names){
 }
 
 for(k in iterations){
-  assign(paste0("meanTrainPLANNstr_", k) , read.csv(paste0(path0, "TRAIN/STRATA/PLANN/mean_survival/",k,"mean_plann_strates.csv"), sep = ";", row.names = 1) )
+  HC <- read.csv(paste0(path0, "TRAIN/STRATA/PLANN/individual_survival/",k,"_ind_PLANN_HC.csv"), sep = ";")
+  HC <- apply(HC, mean, MARGIN = 2)[-1]
+  
+  HR <- read.csv(paste0(path0, "TRAIN/STRATA/PLANN/individual_survival/",k,"_ind_PLANN_HR.csv"), sep = ";")
+  HR <- apply(HR, mean, MARGIN = 2)[-1]
+  
+  FC <- read.csv(paste0(path0, "TRAIN/STRATA/PLANN/individual_survival/",k,"_ind_PLANN_FC.csv"), sep = ";")
+  FC <- apply(FC, mean, MARGIN = 2)[-1]
+  
+  FR <- read.csv(paste0(path0, "TRAIN/STRATA/PLANN/individual_survival/",k,"_ind_PLANN_FR.csv"), sep = ";")
+  FR <- apply(FR, mean, MARGIN = 2)[-1]
   
   for(j in strata_names){
-    assign(paste0("ALL_PLANN_",j) ,rbind(get(paste0("ALL_PLANN_",j)),get(paste0("meanTrainPLANNstr_",k))[paste0("mean.plann_", j),-1]  ) )
+    assign(paste0("ALL_PLANN_",j) ,rbind(get(paste0("ALL_PLANN_",j)), get(j) ) )
   }
-  rm(list =paste0("meanTrainPLANNstr_", k))
+  rm(list =c("HC", "HR", "FC", "FR"))
 }
 
 ### flex1
@@ -5850,9 +5914,10 @@ S_theoval <- colMeans(ALL_theoval)
 ##plann
 ALL_PLANNval <- data.frame() 
 for(k in iterations){
-  assign(paste0("meanValidPLANN_", k) , read.csv(paste0(path0, "VALID/WHOLE/PLANN/mean_survival/",k,"_mean_PLANNval.csv"), sep = ";") )
-  ALL_PLANNval <-rbind(ALL_PLANNval, get(paste0("meanValidPLANN_", k)))
-  rm(list =paste0("meanValidPLANN_", k))
+  assign(paste0("indValidPLANN_", k) , read.csv(paste0(path0, "VALID/WHOLE/PLANN/individual_survival/",k,"_ind_PLANNval.csv"), sep = ";") )
+  assign(paste0("indValidPLANN_", k), apply(get(paste0("indValidPLANN_", k)), mean, MARGIN = 2) ) 
+  ALL_PLANNval <-rbind(ALL_PLANNval, get(paste0("indValidPLANN_", k)))
+  rm(list =paste0("indValidPLANN_", k))
 }
 
 ###flex1
@@ -5955,17 +6020,24 @@ for(j in strata_names){
 
 # PLANN
 
-for(j in strata_names){
-  assign(paste0("ALL_PLANNval_", j),data.frame()) 
-}
 
 for(k in iterations){
-  assign(paste0("meanValidPLANNstr_", k) , read.csv(paste0(path0, "VALID/STRATA/PLANN/mean_survival/",k,"mean_plannval_strates.csv"), sep = ";", row.names = 1) )
+  HC <- read.csv(paste0(path0, "VALID/STRATA/PLANN/individual_survival/",k,"_ind_PLANNval_HC.csv"), sep = ";")
+  HC <- apply(HC, mean, MARGIN = 2)[-1]
+  
+  HR <- read.csv(paste0(path0, "VALID/STRATA/PLANN/individual_survival/",k,"_ind_PLANNval_HR.csv"), sep = ";")
+  HR <- apply(HR, mean, MARGIN = 2)[-1]
+  
+  FC <- read.csv(paste0(path0, "VALID/STRATA/PLANN/individual_survival/",k,"_ind_PLANNval_FC.csv"), sep = ";")
+  FC <- apply(FC, mean, MARGIN = 2)[-1]
+  
+  FR <- read.csv(paste0(path0, "VALID/STRATA/PLANN/individual_survival/",k,"_ind_PLANNval_FR.csv"), sep = ";")
+  FR <- apply(FR, mean, MARGIN = 2)[-1]
   
   for(j in strata_names){
-    assign(paste0("ALL_PLANNval_",j) ,rbind(get(paste0("ALL_PLANNval_",j)),get(paste0("meanValidPLANNstr_",k))[paste0("mean.plannval_", j),-1]  ) )
+    assign(paste0("ALL_PLANNval_",j) ,rbind(get(paste0("ALL_PLANNval_",j)), get(j) ) )
   }
-  rm(list =paste0("meanValidPLANNstr_", k))
+  rm(list =c("HC", "HR", "FC", "FR"))
 }
 
 ### flex1
@@ -8978,10 +9050,12 @@ S_theo <- colMeans(ALL_theo)
 ##plann
 ALL_PLANN <- data.frame() 
 for(k in iterations){
-  assign(paste0("meanTrainPLANN_", k) , read.csv(paste0(path0, "TRAIN/WHOLE/PLANN/mean_survival/",k,"_mean_PLANN.csv"), sep = ";") )
-  ALL_PLANN <-rbind(ALL_PLANN, get(paste0("meanTrainPLANN_", k)))
-  rm(list =paste0("meanTrainPLANN_", k))
+  assign(paste0("indTrainPLANN_", k) , read.csv(paste0(path0, "TRAIN/WHOLE/PLANN/individual_survival/",k,"_ind_PLANN.csv"), sep = ";") )
+  assign(paste0("indTrainPLANN_", k), apply(get(paste0("indTrainPLANN_", k)), mean, MARGIN = 2) ) 
+  ALL_PLANN<-rbind(ALL_PLANN, get(paste0("indTrainPLANN_", k)))
+  rm(list =paste0("indTrainPLANN_", k))
 }
+
 
 ###flex1
 ##2 noeuds
@@ -9089,12 +9163,22 @@ for(j in strata_names){
 }
 
 for(k in iterations){
-  assign(paste0("meanTrainPLANNstr_", k) , read.csv(paste0(path0, "TRAIN/STRATA/PLANN/mean_survival/",k,"mean_plann_strates.csv"), sep = ";", row.names = 1) )
+  HC <- read.csv(paste0(path0, "TRAIN/STRATA/PLANN/individual_survival/",k,"_ind_PLANN_HC.csv"), sep = ";")
+  HC <- apply(HC, mean, MARGIN = 2)[-1]
+  
+  HR <- read.csv(paste0(path0, "TRAIN/STRATA/PLANN/individual_survival/",k,"_ind_PLANN_HR.csv"), sep = ";")
+  HR <- apply(HR, mean, MARGIN = 2)[-1]
+  
+  FC <- read.csv(paste0(path0, "TRAIN/STRATA/PLANN/individual_survival/",k,"_ind_PLANN_FC.csv"), sep = ";")
+  FC <- apply(FC, mean, MARGIN = 2)[-1]
+  
+  FR <- read.csv(paste0(path0, "TRAIN/STRATA/PLANN/individual_survival/",k,"_ind_PLANN_FR.csv"), sep = ";")
+  FR <- apply(FR, mean, MARGIN = 2)[-1]
   
   for(j in strata_names){
-    assign(paste0("ALL_PLANN_",j) ,rbind(get(paste0("ALL_PLANN_",j)),get(paste0("meanTrainPLANNstr_",k))[paste0("mean.plann_", j),-1]  ) )
+    assign(paste0("ALL_PLANN_",j) ,rbind(get(paste0("ALL_PLANN_",j)), get(j) ) )
   }
-  rm(list =paste0("meanTrainPLANNstr_", k))
+  rm(list =c("HC", "HR", "FC", "FR"))
 }
 
 ### flex1
@@ -9381,11 +9465,13 @@ S_theoval <- colMeans(ALL_theoval)
 #importation des données des différents modèles 
 #########
 ##plann
+
 ALL_PLANNval <- data.frame() 
 for(k in iterations){
-  assign(paste0("meanValidPLANN_", k) , read.csv(paste0(path0, "VALID/WHOLE/PLANN/mean_survival/",k,"_mean_PLANNval.csv"), sep = ";") )
-  ALL_PLANNval <-rbind(ALL_PLANNval, get(paste0("meanValidPLANN_", k)))
-  rm(list =paste0("meanValidPLANN_", k))
+  assign(paste0("indValidPLANN_", k) , read.csv(paste0(path0, "VALID/WHOLE/PLANN/individual_survival/",k,"_ind_PLANNval.csv"), sep = ";") )
+  assign(paste0("indValidPLANN_", k), apply(get(paste0("indValidPLANN_", k)), mean, MARGIN = 2) ) 
+  ALL_PLANNval <-rbind(ALL_PLANNval, get(paste0("indValidPLANN_", k)))
+  rm(list =paste0("indValidPLANN_", k))
 }
 
 ###flex1
@@ -9492,13 +9578,24 @@ for(j in strata_names){
   assign(paste0("ALL_PLANNval_", j),data.frame()) 
 }
 
+
 for(k in iterations){
-  assign(paste0("meanValidPLANNstr_", k) , read.csv(paste0(path0, "VALID/STRATA/PLANN/mean_survival/",k,"mean_plannval_strates.csv"), sep = ";", row.names = 1) )
+  HC <- read.csv(paste0(path0, "VALID/STRATA/PLANN/individual_survival/",k,"_ind_PLANNval_HC.csv"), sep = ";")
+  HC <- apply(HC, mean, MARGIN = 2)[-1]
+  
+  HR <- read.csv(paste0(path0, "VALID/STRATA/PLANN/individual_survival/",k,"_ind_PLANNval_HR.csv"), sep = ";")
+  HR <- apply(HR, mean, MARGIN = 2)[-1]
+  
+  FC <- read.csv(paste0(path0, "VALID/STRATA/PLANN/individual_survival/",k,"_ind_PLANNval_FC.csv"), sep = ";")
+  FC <- apply(FC, mean, MARGIN = 2)[-1]
+  
+  FR <- read.csv(paste0(path0, "VALID/STRATA/PLANN/individual_survival/",k,"_ind_PLANNval_FR.csv"), sep = ";")
+  FR <- apply(FR, mean, MARGIN = 2)[-1]
   
   for(j in strata_names){
-    assign(paste0("ALL_PLANNval_",j) ,rbind(get(paste0("ALL_PLANNval_",j)),get(paste0("meanValidPLANNstr_",k))[paste0("mean.plannval_", j),-1]  ) )
+    assign(paste0("ALL_PLANNval_",j) ,rbind(get(paste0("ALL_PLANNval_",j)), get(j) ) )
   }
-  rm(list =paste0("meanValidPLANNstr_", k))
+  rm(list =c("HC", "HR", "FC", "FR"))
 }
 
 ### flex1

@@ -2,19 +2,19 @@ library(xtable)
 
 ##################################################  NPH LC
 ################################## N1000 
-path1 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N1000_results/NPH/1000ite_1000ind_NPH_LC_14_05.Rdata"
+path1 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N1000_results/NPH/1000ite_1000ind_NPH_HC_04_07.Rdata"
 load(path1)
 
 ##pour aller récupérer les logliklihood
 
-path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N1000/Output simulations_N1000_NPH_LC/LOGLIK/"
+path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N1000/Output simulations_N1000_NPH_HC/LOGLIK/"
 
-method_names <- c("FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
+method_names <- c("WG", "FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
                   "PLANN", "PP")
-method_names_val <- c("FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
+method_names_val <- c("WGval", "FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
                   "PLANNval", "PPval")
 
-article_names <- c("Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
+article_names <- c("Weibull", "Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
 
 colnames(biais_PP) <- colnames(biais_FLEX1.2)
 colnames(biais_PPval) <- colnames(biais_FLEX1.2)
@@ -39,8 +39,10 @@ rownames(whole_RMSE) <- article_names
 ## roc
 whole_roc <- data.frame()
 for(i in 1:6){
-  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[1]][c(2:6,1)][i])))
+  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[1]][c(6, 1:5)][i])))
 }
+
+whole_roc <- rbind(whole_roc, c(rep(NA,4)))
 rownames(whole_roc) <- article_names
 colnames(whole_roc) <- colnames(whole_RMSE)
 
@@ -55,10 +57,10 @@ if(!is.null(miss)){
   iterations <- iterations[-miss]
 }
 
-logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
 for(i in iterations[-1]){
   # assign(paste0("a_", i) , unname(read.csv(paste0(path0,i,"_loglik.csv")))[c(2:5,1),] )
-  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
   logll <- cbind(logll, a)
   }
 colnames(logll) <- NULL
@@ -93,8 +95,10 @@ rownames(whole_RMSE_val) <- article_names
 ## roc
 whole_roc_val <- data.frame()
 for(i in 1:6){
-  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[1]][c(2:6,1)][i])))
+  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[1]][c(6,1:5)][i])))
 }
+
+whole_roc_val <- rbind(whole_roc_val, c(rep(NA,4)))
 rownames(whole_roc_val) <- article_names
 colnames(whole_roc_val) <- colnames(whole_RMSE_val)
 
@@ -114,12 +118,12 @@ load(path1)
 
 path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N3000/Output simulations_N3000_NPH_LC/LOGLIK/"
 
-method_names <- c("FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
+method_names <- c("WG", "FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
                   "PLANN", "PP")
-method_names_val <- c("FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
+method_names_val <- c("WGval", "FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
                       "PLANNval", "PPval")
 
-article_names <- c("Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
+article_names <- c("Weibull", "Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
 
 colnames(biais_PP) <- colnames(biais_FLEX1.2)
 colnames(biais_PPval) <- colnames(biais_FLEX1.2)
@@ -144,8 +148,10 @@ rownames(whole_RMSE) <- article_names
 ## roc
 whole_roc <- data.frame()
 for(i in 1:6){
-  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[1]][c(2:6,1)][i])))
+  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[1]][c(6, 1:5)][i])))
 }
+
+whole_roc <- rbind(whole_roc, c(rep(NA,4)))
 rownames(whole_roc) <- article_names
 colnames(whole_roc) <- colnames(whole_RMSE)
 
@@ -160,10 +166,10 @@ if(!is.null(miss)){
   iterations <- iterations[-miss]
 }
 
-logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
 for(i in iterations[-1]){
   # assign(paste0("a_", i) , unname(read.csv(paste0(path0,i,"_loglik.csv")))[c(2:5,1),] )
-  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
   logll <- cbind(logll, a)
 }
 colnames(logll) <- NULL
@@ -198,8 +204,10 @@ rownames(whole_RMSE_val) <- article_names
 ## roc
 whole_roc_val <- data.frame()
 for(i in 1:6){
-  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[1]][c(2:6,1)][i])))
+  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[1]][c(6,1:5)][i])))
 }
+
+whole_roc_val <- rbind(whole_roc_val, c(rep(NA,4)))
 rownames(whole_roc_val) <- article_names
 colnames(whole_roc_val) <- colnames(whole_RMSE_val)
 
@@ -219,12 +227,12 @@ load(path1)
 
 path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N5000/Output simulations_N5000_NPH_LC/LOGLIK/"
 
-method_names <- c("FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
+method_names <- c("WG", "FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
                   "PLANN", "PP")
-method_names_val <- c("FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
+method_names_val <- c("WGval", "FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
                       "PLANNval", "PPval")
 
-article_names <- c("Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
+article_names <- c("Weibull", "Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
 
 colnames(biais_PP) <- colnames(biais_FLEX1.2)
 colnames(biais_PPval) <- colnames(biais_FLEX1.2)
@@ -249,8 +257,10 @@ rownames(whole_RMSE) <- article_names
 ## roc
 whole_roc <- data.frame()
 for(i in 1:6){
-  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[1]][c(2:6,1)][i])))
+  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[1]][c(6, 1:5)][i])))
 }
+
+whole_roc <- rbind(whole_roc, c(rep(NA,4)))
 rownames(whole_roc) <- article_names
 colnames(whole_roc) <- colnames(whole_RMSE)
 
@@ -265,10 +275,10 @@ if(!is.null(miss)){
   iterations <- iterations[-miss]
 }
 
-logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
 for(i in iterations[-1]){
   # assign(paste0("a_", i) , unname(read.csv(paste0(path0,i,"_loglik.csv")))[c(2:5,1),] )
-  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
   logll <- cbind(logll, a)
 }
 colnames(logll) <- NULL
@@ -303,8 +313,10 @@ rownames(whole_RMSE_val) <- article_names
 ## roc
 whole_roc_val <- data.frame()
 for(i in 1:6){
-  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[1]][c(2:6,1)][i])))
+  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[1]][c(6,1:5)][i])))
 }
+
+whole_roc_val <- rbind(whole_roc_val, c(rep(NA,4)))
 rownames(whole_roc_val) <- article_names
 colnames(whole_roc_val) <- colnames(whole_RMSE_val)
 
@@ -324,19 +336,19 @@ library(xtable)
 
 ##################################################  NPH LC
 ################################## N1000 
-path1 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N1000_results/NPH/1000ite_1000ind_NPH_LC_14_05.Rdata"
+path1 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N1000_results/NPH/1000ite_1000ind_NPH_HC_04_07.Rdata"
 load(path1)
 
 ##pour aller récupérer les logliklihood
 
-path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N1000/Output simulations_N1000_NPH_LC/LOGLIK/"
+path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N1000/Output simulations_N1000_NPH_HC/LOGLIK/"
 
-method_names <- c("FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
+method_names <- c("WG", "FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
                   "PLANN", "PP")
-method_names_val <- c("FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
+method_names_val <- c("WGval", "FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
                       "PLANNval", "PPval")
 
-article_names <- c("Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
+article_names <- c("Weibull", "Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
 
 colnames(biais_PP) <- colnames(biais_FLEX1.2)
 colnames(biais_PPval) <- colnames(biais_FLEX1.2)
@@ -361,8 +373,10 @@ rownames(whole_RMSE) <- article_names
 ## roc
 whole_roc <- data.frame()
 for(i in 1:6){
-  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[2]][c(2:6,1)][i])))
+  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[1]][c(6, 1:5)][i])))
 }
+
+whole_roc <- rbind(whole_roc, c(rep(NA,4)))
 rownames(whole_roc) <- article_names
 colnames(whole_roc) <- colnames(whole_RMSE)
 
@@ -377,10 +391,10 @@ if(!is.null(miss)){
   iterations <- iterations[-miss]
 }
 
-logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
 for(i in iterations[-1]){
   # assign(paste0("a_", i) , unname(read.csv(paste0(path0,i,"_loglik.csv")))[c(2:5,1),] )
-  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
   logll <- cbind(logll, a)
 }
 colnames(logll) <- NULL
@@ -415,11 +429,12 @@ rownames(whole_RMSE_val) <- article_names
 ## roc
 whole_roc_val <- data.frame()
 for(i in 1:6){
-  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[2]][c(2:6,1)][i])))
+  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[1]][c(6,1:5)][i])))
 }
+
+whole_roc_val <- rbind(whole_roc_val, c(rep(NA,4)))
 rownames(whole_roc_val) <- article_names
 colnames(whole_roc_val) <- colnames(whole_RMSE_val)
-
 
 whole_tout_val <- cbind(whole_biais_val, whole_RMSE_val, whole_roc_val, whole_log)
 
@@ -436,12 +451,12 @@ load(path1)
 
 path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N3000/Output simulations_N3000_NPH_LC/LOGLIK/"
 
-method_names <- c("FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
+method_names <- c("WG", "FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
                   "PLANN", "PP")
-method_names_val <- c("FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
+method_names_val <- c("WGval", "FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
                       "PLANNval", "PPval")
 
-article_names <- c("Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
+article_names <- c("Weibull", "Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
 
 colnames(biais_PP) <- colnames(biais_FLEX1.2)
 colnames(biais_PPval) <- colnames(biais_FLEX1.2)
@@ -466,8 +481,10 @@ rownames(whole_RMSE) <- article_names
 ## roc
 whole_roc <- data.frame()
 for(i in 1:6){
-  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[2]][c(2:6,1)][i])))
+  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[1]][c(6, 1:5)][i])))
 }
+
+whole_roc <- rbind(whole_roc, c(rep(NA,4)))
 rownames(whole_roc) <- article_names
 colnames(whole_roc) <- colnames(whole_RMSE)
 
@@ -482,10 +499,10 @@ if(!is.null(miss)){
   iterations <- iterations[-miss]
 }
 
-logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
 for(i in iterations[-1]){
   # assign(paste0("a_", i) , unname(read.csv(paste0(path0,i,"_loglik.csv")))[c(2:5,1),] )
-  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
   logll <- cbind(logll, a)
 }
 colnames(logll) <- NULL
@@ -520,11 +537,12 @@ rownames(whole_RMSE_val) <- article_names
 ## roc
 whole_roc_val <- data.frame()
 for(i in 1:6){
-  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[2]][c(2:6,1)][i])))
+  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[1]][c(6,1:5)][i])))
 }
+
+whole_roc_val <- rbind(whole_roc_val, c(rep(NA,4)))
 rownames(whole_roc_val) <- article_names
 colnames(whole_roc_val) <- colnames(whole_RMSE_val)
-
 
 whole_tout_val <- cbind(whole_biais_val, whole_RMSE_val, whole_roc_val, whole_log)
 
@@ -541,12 +559,12 @@ load(path1)
 
 path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N5000/Output simulations_N5000_NPH_LC/LOGLIK/"
 
-method_names <- c("FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
+method_names <- c("WG", "FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
                   "PLANN", "PP")
-method_names_val <- c("FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
+method_names_val <- c("WGval", "FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
                       "PLANNval", "PPval")
 
-article_names <- c("Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
+article_names <- c("Weibull", "Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
 
 colnames(biais_PP) <- colnames(biais_FLEX1.2)
 colnames(biais_PPval) <- colnames(biais_FLEX1.2)
@@ -571,8 +589,10 @@ rownames(whole_RMSE) <- article_names
 ## roc
 whole_roc <- data.frame()
 for(i in 1:6){
-  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[2]][c(2:6,1)][i])))
+  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[1]][c(6, 1:5)][i])))
 }
+
+whole_roc <- rbind(whole_roc, c(rep(NA,4)))
 rownames(whole_roc) <- article_names
 colnames(whole_roc) <- colnames(whole_RMSE)
 
@@ -587,10 +607,10 @@ if(!is.null(miss)){
   iterations <- iterations[-miss]
 }
 
-logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
 for(i in iterations[-1]){
   # assign(paste0("a_", i) , unname(read.csv(paste0(path0,i,"_loglik.csv")))[c(2:5,1),] )
-  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
   logll <- cbind(logll, a)
 }
 colnames(logll) <- NULL
@@ -625,8 +645,10 @@ rownames(whole_RMSE_val) <- article_names
 ## roc
 whole_roc_val <- data.frame()
 for(i in 1:6){
-  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[2]][c(2:6,1)][i])))
+  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[1]][c(6,1:5)][i])))
 }
+
+whole_roc_val <- rbind(whole_roc_val, c(rep(NA,4)))
 rownames(whole_roc_val) <- article_names
 colnames(whole_roc_val) <- colnames(whole_RMSE_val)
 
@@ -646,19 +668,19 @@ library(xtable)
 
 ##################################################  NPH LC
 ################################## N1000 
-path1 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N1000_results/NPH/1000ite_1000ind_NPH_LC_14_05.Rdata"
+path1 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N1000_results/NPH/1000ite_1000ind_NPH_HC_04_07.Rdata"
 load(path1)
 
 ##pour aller récupérer les logliklihood
 
-path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N1000/Output simulations_N1000_NPH_LC/LOGLIK/"
+path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N1000/Output simulations_N1000_NPH_HC/LOGLIK/"
 
-method_names <- c("FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
+method_names <- c("WG", "FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
                   "PLANN", "PP")
-method_names_val <- c("FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
+method_names_val <- c("WGval", "FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
                       "PLANNval", "PPval")
 
-article_names <- c("Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
+article_names <- c("Weibull", "Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
 
 colnames(biais_PP) <- colnames(biais_FLEX1.2)
 colnames(biais_PPval) <- colnames(biais_FLEX1.2)
@@ -683,8 +705,10 @@ rownames(whole_RMSE) <- article_names
 ## roc
 whole_roc <- data.frame()
 for(i in 1:6){
-  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[3]][c(2:6,1)][i])))
+  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[1]][c(6, 1:5)][i])))
 }
+
+whole_roc <- rbind(whole_roc, c(rep(NA,4)))
 rownames(whole_roc) <- article_names
 colnames(whole_roc) <- colnames(whole_RMSE)
 
@@ -699,10 +723,10 @@ if(!is.null(miss)){
   iterations <- iterations[-miss]
 }
 
-logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
 for(i in iterations[-1]){
   # assign(paste0("a_", i) , unname(read.csv(paste0(path0,i,"_loglik.csv")))[c(2:5,1),] )
-  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
   logll <- cbind(logll, a)
 }
 colnames(logll) <- NULL
@@ -737,12 +761,14 @@ rownames(whole_RMSE_val) <- article_names
 ## roc
 whole_roc_val <- data.frame()
 for(i in 1:6){
-  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[3]][c(2:6,1)][i])))
+  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[1]][c(6,1:5)][i])))
 }
+
+whole_roc_val <- rbind(whole_roc_val, c(rep(NA,4)))
 rownames(whole_roc_val) <- article_names
 colnames(whole_roc_val) <- colnames(whole_RMSE_val)
 
-whole_log = as.data.frame(t(t(c(rep(NA,6)))))
+whole_log = as.data.frame(t(t(c(rep(NA,7)))))
 
 whole_tout_val <- cbind(whole_biais_val, whole_RMSE_val, whole_roc_val, whole_log)
 
@@ -759,12 +785,12 @@ load(path1)
 
 path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N3000/Output simulations_N3000_NPH_LC/LOGLIK/"
 
-method_names <- c("FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
+method_names <- c("WG", "FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
                   "PLANN", "PP")
-method_names_val <- c("FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
+method_names_val <- c("WGval", "FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
                       "PLANNval", "PPval")
 
-article_names <- c("Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
+article_names <- c("Weibull", "Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
 
 colnames(biais_PP) <- colnames(biais_FLEX1.2)
 colnames(biais_PPval) <- colnames(biais_FLEX1.2)
@@ -789,8 +815,10 @@ rownames(whole_RMSE) <- article_names
 ## roc
 whole_roc <- data.frame()
 for(i in 1:6){
-  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[3]][c(2:6,1)][i])))
+  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[1]][c(6, 1:5)][i])))
 }
+
+whole_roc <- rbind(whole_roc, c(rep(NA,4)))
 rownames(whole_roc) <- article_names
 colnames(whole_roc) <- colnames(whole_RMSE)
 
@@ -805,10 +833,10 @@ if(!is.null(miss)){
   iterations <- iterations[-miss]
 }
 
-logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
 for(i in iterations[-1]){
   # assign(paste0("a_", i) , unname(read.csv(paste0(path0,i,"_loglik.csv")))[c(2:5,1),] )
-  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
   logll <- cbind(logll, a)
 }
 colnames(logll) <- NULL
@@ -843,12 +871,14 @@ rownames(whole_RMSE_val) <- article_names
 ## roc
 whole_roc_val <- data.frame()
 for(i in 1:6){
-  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[3]][c(2:6,1)][i])))
+  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[1]][c(6,1:5)][i])))
 }
+
+whole_roc_val <- rbind(whole_roc_val, c(rep(NA,4)))
 rownames(whole_roc_val) <- article_names
 colnames(whole_roc_val) <- colnames(whole_RMSE_val)
 
-whole_log = as.data.frame(t(t(c(rep(NA,6)))))
+whole_log = as.data.frame(t(t(c(rep(NA,7)))))
 
 whole_tout_val <- cbind(whole_biais_val, whole_RMSE_val, whole_roc_val, whole_log)
 
@@ -865,12 +895,12 @@ load(path1)
 
 path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N5000/Output simulations_N5000_NPH_LC/LOGLIK/"
 
-method_names <- c("FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
+method_names <- c("WG", "FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
                   "PLANN", "PP")
-method_names_val <- c("FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
+method_names_val <- c("WGval", "FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
                       "PLANNval", "PPval")
 
-article_names <- c("Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
+article_names <- c("Weibull", "Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
 
 colnames(biais_PP) <- colnames(biais_FLEX1.2)
 colnames(biais_PPval) <- colnames(biais_FLEX1.2)
@@ -895,8 +925,10 @@ rownames(whole_RMSE) <- article_names
 ## roc
 whole_roc <- data.frame()
 for(i in 1:6){
-  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[3]][c(2:6,1)][i])))
+  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[1]][c(6, 1:5)][i])))
 }
+
+whole_roc <- rbind(whole_roc, c(rep(NA,4)))
 rownames(whole_roc) <- article_names
 colnames(whole_roc) <- colnames(whole_RMSE)
 
@@ -911,10 +943,10 @@ if(!is.null(miss)){
   iterations <- iterations[-miss]
 }
 
-logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
 for(i in iterations[-1]){
   # assign(paste0("a_", i) , unname(read.csv(paste0(path0,i,"_loglik.csv")))[c(2:5,1),] )
-  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
   logll <- cbind(logll, a)
 }
 colnames(logll) <- NULL
@@ -949,12 +981,14 @@ rownames(whole_RMSE_val) <- article_names
 ## roc
 whole_roc_val <- data.frame()
 for(i in 1:6){
-  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[3]][c(2:6,1)][i])))
+  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[1]][c(6,1:5)][i])))
 }
+
+whole_roc_val <- rbind(whole_roc_val, c(rep(NA,4)))
 rownames(whole_roc_val) <- article_names
 colnames(whole_roc_val) <- colnames(whole_RMSE_val)
 
-whole_log = as.data.frame(t(t(c(rep(NA,6)))))
+whole_log = as.data.frame(t(t(c(rep(NA,7)))))
 
 whole_tout_val <- cbind(whole_biais_val, whole_RMSE_val, whole_roc_val, whole_log)
 
@@ -973,19 +1007,19 @@ library(xtable)
 
 ##################################################  NPH LC
 ################################## N1000 
-path1 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N1000_results/NPH/1000ite_1000ind_NPH_LC_14_05.Rdata"
+path1 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N1000_results/NPH/1000ite_1000ind_NPH_HC_04_07.Rdata"
 load(path1)
 
 ##pour aller récupérer les logliklihood
 
-path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N1000/Output simulations_N1000_NPH_LC/LOGLIK/"
+path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N1000/Output simulations_N1000_NPH_HC/LOGLIK/"
 
-method_names <- c("FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
+method_names <- c("WG", "FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
                   "PLANN", "PP")
-method_names_val <- c("FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
+method_names_val <- c("WGval", "FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
                       "PLANNval", "PPval")
 
-article_names <- c("Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
+article_names <- c("Weibull", "Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
 
 colnames(biais_PP) <- colnames(biais_FLEX1.2)
 colnames(biais_PPval) <- colnames(biais_FLEX1.2)
@@ -1010,8 +1044,10 @@ rownames(whole_RMSE) <- article_names
 ## roc
 whole_roc <- data.frame()
 for(i in 1:6){
-  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[4]][c(2:6,1)][i])))
+  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[1]][c(6, 1:5)][i])))
 }
+
+whole_roc <- rbind(whole_roc, c(rep(NA,4)))
 rownames(whole_roc) <- article_names
 colnames(whole_roc) <- colnames(whole_RMSE)
 
@@ -1026,10 +1062,10 @@ if(!is.null(miss)){
   iterations <- iterations[-miss]
 }
 
-logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
 for(i in iterations[-1]){
   # assign(paste0("a_", i) , unname(read.csv(paste0(path0,i,"_loglik.csv")))[c(2:5,1),] )
-  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
   logll <- cbind(logll, a)
 }
 colnames(logll) <- NULL
@@ -1064,12 +1100,14 @@ rownames(whole_RMSE_val) <- article_names
 ## roc
 whole_roc_val <- data.frame()
 for(i in 1:6){
-  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[4]][c(2:6,1)][i])))
+  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[1]][c(6,1:5)][i])))
 }
+
+whole_roc_val <- rbind(whole_roc_val, c(rep(NA,4)))
 rownames(whole_roc_val) <- article_names
 colnames(whole_roc_val) <- colnames(whole_RMSE_val)
 
-whole_log = as.data.frame(t(t(c(rep(NA,6)))))
+whole_log = as.data.frame(t(t(c(rep(NA,7)))))
 
 whole_tout_val <- cbind(whole_biais_val, whole_RMSE_val, whole_roc_val, whole_log)
 
@@ -1086,12 +1124,12 @@ load(path1)
 
 path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N3000/Output simulations_N3000_NPH_LC/LOGLIK/"
 
-method_names <- c("FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
+method_names <- c("WG", "FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
                   "PLANN", "PP")
-method_names_val <- c("FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
+method_names_val <- c("WGval", "FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
                       "PLANNval", "PPval")
 
-article_names <- c("Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
+article_names <- c("Weibull", "Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
 
 colnames(biais_PP) <- colnames(biais_FLEX1.2)
 colnames(biais_PPval) <- colnames(biais_FLEX1.2)
@@ -1116,8 +1154,10 @@ rownames(whole_RMSE) <- article_names
 ## roc
 whole_roc <- data.frame()
 for(i in 1:6){
-  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[4]][c(2:6,1)][i])))
+  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[1]][c(6, 1:5)][i])))
 }
+
+whole_roc <- rbind(whole_roc, c(rep(NA,4)))
 rownames(whole_roc) <- article_names
 colnames(whole_roc) <- colnames(whole_RMSE)
 
@@ -1132,10 +1172,10 @@ if(!is.null(miss)){
   iterations <- iterations[-miss]
 }
 
-logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
 for(i in iterations[-1]){
   # assign(paste0("a_", i) , unname(read.csv(paste0(path0,i,"_loglik.csv")))[c(2:5,1),] )
-  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
   logll <- cbind(logll, a)
 }
 colnames(logll) <- NULL
@@ -1170,12 +1210,14 @@ rownames(whole_RMSE_val) <- article_names
 ## roc
 whole_roc_val <- data.frame()
 for(i in 1:6){
-  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[4]][c(2:6,1)][i])))
+  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[1]][c(6,1:5)][i])))
 }
+
+whole_roc_val <- rbind(whole_roc_val, c(rep(NA,4)))
 rownames(whole_roc_val) <- article_names
 colnames(whole_roc_val) <- colnames(whole_RMSE_val)
 
-whole_log = as.data.frame(t(t(c(rep(NA,6)))))
+whole_log = as.data.frame(t(t(c(rep(NA,7)))))
 
 whole_tout_val <- cbind(whole_biais_val, whole_RMSE_val, whole_roc_val, whole_log)
 
@@ -1192,12 +1234,12 @@ load(path1)
 
 path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N5000/Output simulations_N5000_NPH_LC/LOGLIK/"
 
-method_names <- c("FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
+method_names <- c("WG", "FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
                   "PLANN", "PP")
-method_names_val <- c("FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
+method_names_val <- c("WGval", "FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
                       "PLANNval", "PPval")
 
-article_names <- c("Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
+article_names <- c("Weibull", "Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
 
 colnames(biais_PP) <- colnames(biais_FLEX1.2)
 colnames(biais_PPval) <- colnames(biais_FLEX1.2)
@@ -1222,8 +1264,10 @@ rownames(whole_RMSE) <- article_names
 ## roc
 whole_roc <- data.frame()
 for(i in 1:6){
-  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[4]][c(2:6,1)][i])))
+  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[1]][c(6, 1:5)][i])))
 }
+
+whole_roc <- rbind(whole_roc, c(rep(NA,4)))
 rownames(whole_roc) <- article_names
 colnames(whole_roc) <- colnames(whole_RMSE)
 
@@ -1238,10 +1282,10 @@ if(!is.null(miss)){
   iterations <- iterations[-miss]
 }
 
-logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
 for(i in iterations[-1]){
   # assign(paste0("a_", i) , unname(read.csv(paste0(path0,i,"_loglik.csv")))[c(2:5,1),] )
-  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
   logll <- cbind(logll, a)
 }
 colnames(logll) <- NULL
@@ -1276,12 +1320,14 @@ rownames(whole_RMSE_val) <- article_names
 ## roc
 whole_roc_val <- data.frame()
 for(i in 1:6){
-  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[4]][c(2:6,1)][i])))
+  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[1]][c(6,1:5)][i])))
 }
+
+whole_roc_val <- rbind(whole_roc_val, c(rep(NA,4)))
 rownames(whole_roc_val) <- article_names
 colnames(whole_roc_val) <- colnames(whole_RMSE_val)
 
-whole_log = as.data.frame(t(t(c(rep(NA,6)))))
+whole_log = as.data.frame(t(t(c(rep(NA,7)))))
 
 whole_tout_val <- cbind(whole_biais_val, whole_RMSE_val, whole_roc_val, whole_log)
 
@@ -1299,19 +1345,19 @@ library(xtable)
 
 ##################################################  NPH LC
 ################################## N1000 
-path1 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N1000_results/NPH/1000ite_1000ind_NPH_LC_14_05.Rdata"
+path1 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N1000_results/NPH/1000ite_1000ind_NPH_HC_04_07.Rdata"
 load(path1)
 
 ##pour aller récupérer les logliklihood
 
-path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N1000/Output simulations_N1000_NPH_LC/LOGLIK/"
+path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N1000/Output simulations_N1000_NPH_HC/LOGLIK/"
 
-method_names <- c("FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
+method_names <- c("WG", "FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
                   "PLANN", "PP")
-method_names_val <- c("FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
+method_names_val <- c("WGval", "FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
                       "PLANNval", "PPval")
 
-article_names <- c("Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
+article_names <- c("Weibull", "Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
 
 colnames(biais_PP) <- colnames(biais_FLEX1.2)
 colnames(biais_PPval) <- colnames(biais_FLEX1.2)
@@ -1336,8 +1382,10 @@ rownames(whole_RMSE) <- article_names
 ## roc
 whole_roc <- data.frame()
 for(i in 1:6){
-  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[5]][c(2:6,1)][i])))
+  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[1]][c(6, 1:5)][i])))
 }
+
+whole_roc <- rbind(whole_roc, c(rep(NA,4)))
 rownames(whole_roc) <- article_names
 colnames(whole_roc) <- colnames(whole_RMSE)
 
@@ -1352,10 +1400,10 @@ if(!is.null(miss)){
   iterations <- iterations[-miss]
 }
 
-logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
 for(i in iterations[-1]){
   # assign(paste0("a_", i) , unname(read.csv(paste0(path0,i,"_loglik.csv")))[c(2:5,1),] )
-  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
   logll <- cbind(logll, a)
 }
 colnames(logll) <- NULL
@@ -1390,12 +1438,14 @@ rownames(whole_RMSE_val) <- article_names
 ## roc
 whole_roc_val <- data.frame()
 for(i in 1:6){
-  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[5]][c(2:6,1)][i])))
+  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[1]][c(6,1:5)][i])))
 }
+
+whole_roc_val <- rbind(whole_roc_val, c(rep(NA,4)))
 rownames(whole_roc_val) <- article_names
 colnames(whole_roc_val) <- colnames(whole_RMSE_val)
 
-whole_log = as.data.frame(t(t(c(rep(NA,6)))))
+whole_log = as.data.frame(t(t(c(rep(NA,7)))))
 
 whole_tout_val <- cbind(whole_biais_val, whole_RMSE_val, whole_roc_val, whole_log)
 
@@ -1412,12 +1462,12 @@ load(path1)
 
 path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N3000/Output simulations_N3000_NPH_LC/LOGLIK/"
 
-method_names <- c("FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
+method_names <- c("WG", "FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
                   "PLANN", "PP")
-method_names_val <- c("FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
+method_names_val <- c("WGval", "FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
                       "PLANNval", "PPval")
 
-article_names <- c("Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
+article_names <- c("Weibull", "Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
 
 colnames(biais_PP) <- colnames(biais_FLEX1.2)
 colnames(biais_PPval) <- colnames(biais_FLEX1.2)
@@ -1442,8 +1492,10 @@ rownames(whole_RMSE) <- article_names
 ## roc
 whole_roc <- data.frame()
 for(i in 1:6){
-  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[5]][c(2:6,1)][i])))
+  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[1]][c(6, 1:5)][i])))
 }
+
+whole_roc <- rbind(whole_roc, c(rep(NA,4)))
 rownames(whole_roc) <- article_names
 colnames(whole_roc) <- colnames(whole_RMSE)
 
@@ -1458,10 +1510,10 @@ if(!is.null(miss)){
   iterations <- iterations[-miss]
 }
 
-logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
 for(i in iterations[-1]){
   # assign(paste0("a_", i) , unname(read.csv(paste0(path0,i,"_loglik.csv")))[c(2:5,1),] )
-  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
   logll <- cbind(logll, a)
 }
 colnames(logll) <- NULL
@@ -1496,12 +1548,13 @@ rownames(whole_RMSE_val) <- article_names
 ## roc
 whole_roc_val <- data.frame()
 for(i in 1:6){
-  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[5]][c(2:6,1)][i])))
+  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[1]][c(6,1:5)][i])))
 }
+
+whole_roc_val <- rbind(whole_roc_val, c(rep(NA,4)))
 rownames(whole_roc_val) <- article_names
 colnames(whole_roc_val) <- colnames(whole_RMSE_val)
-
-whole_log = as.data.frame(t(t(c(rep(NA,6)))))
+whole_log = as.data.frame(t(t(c(rep(NA,7)))))
 
 whole_tout_val <- cbind(whole_biais_val, whole_RMSE_val, whole_roc_val, whole_log)
 
@@ -1518,12 +1571,12 @@ load(path1)
 
 path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N5000/Output simulations_N5000_NPH_LC/LOGLIK/"
 
-method_names <- c("FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
+method_names <- c("WG", "FLEX1.2", "FLEX1.4", "FLEX2.2", "FLEX2.4",
                   "PLANN", "PP")
-method_names_val <- c("FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
+method_names_val <- c("WGval", "FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
                       "PLANNval", "PPval")
 
-article_names <- c("Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
+article_names <- c("Weibull", "Flexnet1.2","Flexnet1.4","Flexnet2.2","Flexnet2.4", "PLANN", "Pohar Perme")
 
 colnames(biais_PP) <- colnames(biais_FLEX1.2)
 colnames(biais_PPval) <- colnames(biais_FLEX1.2)
@@ -1548,8 +1601,10 @@ rownames(whole_RMSE) <- article_names
 ## roc
 whole_roc <- data.frame()
 for(i in 1:6){
-  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[5]][c(2:6,1)][i])))
+  whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[1]][c(6, 1:5)][i])))
 }
+
+whole_roc <- rbind(whole_roc, c(rep(NA,4)))
 rownames(whole_roc) <- article_names
 colnames(whole_roc) <- colnames(whole_RMSE)
 
@@ -1564,10 +1619,10 @@ if(!is.null(miss)){
   iterations <- iterations[-miss]
 }
 
-logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+logll <- unname(read.csv(paste0(path0,iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
 for(i in iterations[-1]){
   # assign(paste0("a_", i) , unname(read.csv(paste0(path0,i,"_loglik.csv")))[c(2:5,1),] )
-  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(2:5,1),2]
+  a <- unname(read.csv(paste0(path0,i,"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
   logll <- cbind(logll, a)
 }
 colnames(logll) <- NULL
@@ -1602,12 +1657,14 @@ rownames(whole_RMSE_val) <- article_names
 ## roc
 whole_roc_val <- data.frame()
 for(i in 1:6){
-  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[5]][c(2:6,1)][i])))
+  whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[1]][c(6,1:5)][i])))
 }
+
+whole_roc_val <- rbind(whole_roc_val, c(rep(NA,4)))
 rownames(whole_roc_val) <- article_names
 colnames(whole_roc_val) <- colnames(whole_RMSE_val)
 
-whole_log = as.data.frame(t(t(c(rep(NA,6)))))
+whole_log = as.data.frame(t(t(c(rep(NA,7)))))
 
 whole_tout_val <- cbind(whole_biais_val, whole_RMSE_val, whole_roc_val, whole_log)
 

@@ -41,7 +41,7 @@ library(doParallel)
 date_launch <- Sys.Date()
 
 
-path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N1000/Output simulations_N1000_NPH_HC/"
+path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N1000_results/NPH/Output Simulations_N1000_NPH_HC/"
 path1 <- "~/Documents/Rstudio/Simulations/BASES/"
 ############
 
@@ -1848,7 +1848,7 @@ date_launch <- Sys.Date()
 library(parallel)
 library(doParallel)
 
-path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N1000/Output simulations_N1000_NPH_HC/"
+path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N1000_results/NPH/Output Simulations_N1000_NPH_HC/"
 
 indic = c()
 for(i in 1:1000){
@@ -3630,7 +3630,7 @@ date_launch <- Sys.Date()
 #################################################################################################
 ### path ###
 
-path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N3000/Output simulations_N3000_NPH_HC/"
+path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N3000_results/NPH/Output Simulations_N3000_NPH_HC/"
 path1 <- "~/Documents/Rstudio/Simulations/BASES/"
 # path0 <- paste0(getwd(),"/")
 ############
@@ -5453,7 +5453,7 @@ date_launch <- Sys.Date()
 library(parallel)
 library(doParallel)
 
-path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N3000/Output simulations_N3000_NPH_HC/"
+path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N3000_results/NPH/Output Simulations_N3000_NPH_HC/"
 
 indic = c()
 for(i in 1:1000){
@@ -7199,7 +7199,7 @@ library(parallel)
 library(doParallel)
 date_launch <- Sys.Date()
 
-path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/N5000/Output simulations_N5000_NPH_HC/"
+path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N5000_results/NPH/Output Simulations_N5000_NPH_HC/"
 path1 <- "~/Documents/Rstudio/Simulations/BASES/"
 ############
 

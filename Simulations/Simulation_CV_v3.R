@@ -429,17 +429,11 @@ simulate_iteration <- function(i, N){
   
   #flex1 
   
-  m1.2 <- 2
-  m1.4 <- 4
-  failedindic1.2 <- NULL
-  failedindic1.4 <- NULL
+  m1.2 <- tune.flex$optimal$m
   
   #flex2  
   
-  m2.2 <- 2
-  m2.4 <- 4
-  failedindic2.2 <- NULL
-  failedindic2.4 <- NULL
+  m2.2 <- tune.flex$optimal$m
   
   
   ##################
@@ -511,38 +505,7 @@ simulate_iteration <- function(i, N){
     failedindic1.2 <- "flex.model1.2 didn't converge, even after decreasing the number of knots incrementaly. WG.model was used instead."
   }
   
-  ########### 4 noeuds
-  m1.4_original <- m1.4
-  m1.4_changed <- FALSE
   
-  converged <- FALSE
-  
-  while (m1.4 >= 0 && !converged) {
-    tryCatch({
-      flex.model1.4 <- survivalFLEXNET(
-        formula = Surv(times, status) ~ stage2 + stage3 + agey10 + sex01 + colon +
-          ratetable(age, year, sexchara),
-        data = data_train,
-        ratetable = slopop,
-        m = m1.4
-      )
-      # If the model succeeds, set converged to TRUE and break out of the loop
-      converged <- TRUE
-    }, error = function(e) {
-      # If an error occurs, decrement m1
-      m1.4_changed <<- TRUE
-      m1.4 <<- m1.4 - 1
-    })
-  }
-  
-  if (m1.4_changed & converged) {
-    failedindic1.4 <- paste0( " : this value was decreased from ", m1.4_original)
-  }
-  
-  if (!converged) {
-    flex.model1.4 <- WG.model
-    failedindic1.4 <- "flex.model1.4 didn't converge, even after decreasing the number of knots incrementaly. WG.model was used instead."
-  }
   ### flex2
   ## 2 noeuds 
   m2.2_original <- m2.2
@@ -572,35 +535,6 @@ simulate_iteration <- function(i, N){
     failedindic2.2 <- "flex.model2.2 didn't converge, even after decreasing the number of knots incrementaly. flex.model1.2 was used instead."
     
   }
-  ## 4 noeuds 
-  
-  m2.4_original <- m2.4
-  m2.4_changed <- FALSE
-  
-  converged <- FALSE
-  
-  while (m2.4 >= 0 && !converged) {
-    tryCatch({flex.model2.4 <-survivalFLEXNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + strata(sex.organ) +
-                                                ratetable(age, year, sexchara), data = data_train,
-                                              ratetable=slopop, m = m2.4)
-    # If the model succeeds, set converged to TRUE and break out of the loop
-    converged <- TRUE
-    }, error = function(e) {
-      # If an error occurs, decrement m2
-      m2.4_changed <<- TRUE
-      m2.4 <<- m2.4 - 1
-    })
-  }
-  
-  if (m2.4_changed & converged) {
-    failedindic2.4 <- paste0(" this value was decreased from ", m2.4_original)
-  }
-  
-  if (!converged) {
-    flex.model2.4 <- flex.model1.4
-    failedindic2.4 <- "flex.model2.4 didn't converge, even after decreasing the number of knots incrementaly. flex.model1.4 was used instead."
-    
-  }
   
   ##############
   #predictions #
@@ -624,13 +558,7 @@ simulate_iteration <- function(i, N){
   flexpred1.2 <- predict(flex.model1.2, newtimes = newtimes)$predictions
   
   mean.flex1.2 <- apply(flexpred1.2, FUN="mean", MARGIN=2)
-  
-  ##4 noeuds
-  
-  flexpred1.4 <- predict(flex.model1.4, newtimes = newtimes)$predictions
-  
-  mean.flex1.4 <- apply(flexpred1.4, FUN="mean", MARGIN=2)
-  
+ 
   #### modèle NPH
   
   ##2 noeuds
@@ -638,18 +566,6 @@ simulate_iteration <- function(i, N){
   flexpred2.2 <- predict(flex.model2.2 , newtimes = newtimes)$predictions
   
   mean.flex2.2  <- apply(flexpred2.2 , FUN="mean", MARGIN=2)
-  
-  ##4 noeuds
-  
-  flexpred2.4 <- predict(flex.model2.4 , newtimes = newtimes)$predictions
-  
-  mean.flex2.4  <- apply(flexpred2.4 , FUN="mean", MARGIN=2)
-  ### genweibull
-  
-  # WGpred <- predict(WG.model, newtimes = newtimes)$predictions
-  # 
-  # mean.WG <- apply(WGpred, FUN="mean", MARGIN=2)
-  
   
   ### Estimateur de Pohar-Perme 
   
@@ -694,19 +610,6 @@ simulate_iteration <- function(i, N){
     assign(paste0("mean.flex1.2_", j), mean.flex1.2S)
   }
   
-  ## 4 noeuds
-  
-  for(j in strata_names){
-    
-    data_train_var <- get(paste0("data_train_", j))
-    
-    flexpred1.4S <- predict(flex.model1.4, newtimes = newtimes, newdata = data_train_var)$predictions
-    
-    mean.flex1.4S <- apply(flexpred1.4S, FUN="mean", MARGIN=2)
-    
-    assign(paste0("flexpred1.4_", j), flexpred1.4S)
-    assign(paste0("mean.flex1.4_", j), mean.flex1.4S)
-  }
   
   #### modèle NPH
   
@@ -722,20 +625,6 @@ simulate_iteration <- function(i, N){
     
     assign(paste0("flexpred2.2_", j), flexpred2.2S)
     assign(paste0("mean.flex2.2_", j), mean.flex2.2S)
-  }
-  
-  ##4 noeuds
-  
-  for(j in strata_names){
-    
-    data_train_var <- get(paste0("data_train_", j))
-    
-    flexpred2.4S <- predict(flex.model2.4, newtimes = newtimes, newdata = data_train_var)$predictions
-    
-    mean.flex2.4S <- apply(flexpred2.4S, FUN="mean", MARGIN=2)
-    
-    assign(paste0("flexpred2.4_", j), flexpred2.4S)
-    assign(paste0("mean.flex2.4_", j), mean.flex2.4S)
   }
   
   ### genweibull
@@ -807,12 +696,6 @@ simulate_iteration <- function(i, N){
   
   mean.flexval1.2 <- apply(flexpredval1.2, FUN="mean", MARGIN=2)
   
-  ### 4 noeuds
-  
-  flexpredval1.4 <- predict(flex.model1.4, newtimes = newtimes, newdata = data_valid)$predictions
-  
-  mean.flexval1.4 <- apply(flexpredval1.4, FUN="mean", MARGIN=2)
-  
   #### modèle NPH
   
   ### 2 noeuds
@@ -820,12 +703,6 @@ simulate_iteration <- function(i, N){
   flexpredval2.2 <- predict(flex.model2.2, newtimes = newtimes, newdata = data_valid)$predictions
   
   mean.flexval2.2 <- apply(flexpredval2.2, FUN="mean", MARGIN=2)
-  
-  ### 4 noeuds
-  
-  flexpredval2.4 <- predict(flex.model2.4, newtimes = newtimes, newdata = data_valid)$predictions
-  
-  mean.flexval2.4 <- apply(flexpredval2.4, FUN="mean", MARGIN=2)
   
   ### genweibull
   
@@ -877,19 +754,6 @@ simulate_iteration <- function(i, N){
     assign(paste0("mean.flexval1.2_", j), mean.flexval1.2S)
   }
   
-  ### 4 noeuds 
-  
-  for(j in strata_names){
-    
-    data_valid_var <- get(paste0("data_valid_", j))
-    
-    flexpredval1.4S <- predict(flex.model1.4, newtimes = newtimes, newdata = data_valid_var)$predictions
-    
-    mean.flexval1.4S <- apply(flexpredval1.4S, FUN="mean", MARGIN=2)
-    
-    assign(paste0("flexpredval1.4_", j), flexpredval1.4S)
-    assign(paste0("mean.flexval1.4_", j), mean.flexval1.4S)
-  }
   #### modèle NPH
   
   ## 2 noeuds
@@ -904,20 +768,6 @@ simulate_iteration <- function(i, N){
     
     assign(paste0("flexpredval2.2_", j), flexpredval2.2S)
     assign(paste0("mean.flexval2.2_", j), mean.flexval2.2S)
-  }
-  
-  ## 4 noeuds
-  
-  for(j in strata_names){
-    
-    data_valid_var <- get(paste0("data_valid_", j))
-    
-    flexpredval2.4S <- predict(flex.model2.4, newtimes = newtimes, newdata = data_valid_var)$predictions
-    
-    mean.flexval2.4S <- apply(flexpredval2.4S, FUN="mean", MARGIN=2)
-    
-    assign(paste0("flexpredval2.4_", j), flexpredval2.4S)
-    assign(paste0("mean.flexval2.4_", j), mean.flexval2.4S)
   }
   
   ### genweibull
@@ -1008,21 +858,16 @@ simulate_iteration <- function(i, N){
   ############## paramètres estimés par CV ###########
   
   m1.2value <- paste0(m1.2, failedindic1.2)
-  m1.4value <- paste0(m1.4, failedindic1.4)
-  
+
   m2.2value <- paste0(m2.2, failedindic2.2)
-  m2.4value <- paste0(m2.4, failedindic2.4)
-  
+
   flex1.2.coeff <- flex.model1.2$coefficients
-  flex1.4.coeff <- flex.model1.4$coefficients
-  
+
   flex2.2.coeff <- flex.model2.2$coefficients
-  flex2.4.coeff <- flex.model2.4$coefficients
-  
+
   paramsCV <- as.data.frame(c(inter = inter,size = size,decay = decay, maxit = maxit,
-                              MaxNWts = MaxNWts, m1.2 = m1.2value, coeff1.2 = flex1.2.coeff, m1.4 = m1.4value, 
-                              coeff1.4 = flex1.4.coeff, m2.2 = m2.2value, coeff2.2 = flex2.2.coeff,
-                              m2.4 = m2.4value, coeff2.4 = flex2.4.coeff, logcoeffHC = logcoeffWG[1,], 
+                              MaxNWts = MaxNWts, m1.2 = m1.2value, 
+                              m2.2 = m2.2value, coeff2.2 = flex2.2.coeff, logcoeffHC = logcoeffWG[1,], 
                               logcoeffHR = logcoeffWG[2,], logcoeffFC = logcoeffWG[3,], logcoeffFR = logcoeffWG[4,] ))
   
   write.table(paramsCV,  paste0(path0, "PARAM/",i,"_param.csv"))
@@ -1039,11 +884,9 @@ simulate_iteration <- function(i, N){
   plann.loglik <- plannpred$loglik  
   
   flex1.2.loglik <- unname(flex.model1.2$loglik[1])
-  flex1.4.loglik <- unname(flex.model1.4$loglik[1])
-  
+
   flex2.2.loglik <- unname(flex.model2.2$loglik[1])
-  flex2.4.loglik <- unname(flex.model2.4$loglik[1])
-  
+
   WG.loglik <- unname(WG.model_FC$loglik[1] + WG.model_HR$loglik[1] 
                       + WG.model_HC$loglik[1] + WG.model_FR$loglik[1])
   WG_HC.loglik <- unname(WG.model_HC$loglik[1])
@@ -1052,8 +895,7 @@ simulate_iteration <- function(i, N){
   WG_FR.loglik <- unname(WG.model_FR$loglik[1])
   
   logliks <- as.data.frame(c(plann = plann.loglik, flex1.2 = flex1.2.loglik,
-                             flex1.4 = flex1.4.loglik, flex2.2 = flex2.2.loglik,
-                             flex2.4 = flex2.4.loglik, WG = WG.loglik,
+                             flex2.2 = flex2.2.loglik, WG = WG.loglik,
                              WG_HC = WG_HC.loglik, WG_HR = WG_HR.loglik, 
                              WG_FC = WG_FC.loglik, WG_FR = WG_FR.loglik ))
   
@@ -1087,18 +929,6 @@ simulate_iteration <- function(i, N){
                                             exp(splinecube(time_valid, gamma_est1.2, flex.model1.2$m, flex.model1.2$mpos)$spln + cova_valid %*% beta_est1.2) ) -
                           exp(splinecube(time_valid, gamma_est1.2, flex.model1.2$m, flex.model1.2$mpos)$spln 
                               + cova_valid %*% beta_est1.2) )
-  #1.4
-  
-  beta_est1.4 <- flex1.4.coeff[1:(length(flex1.4.coeff)-(flex.model1.4$m+2))]
-  gamma_est1.4 <- tail(flex1.4.coeff, flex.model1.4$m+2)
-  cova_valid <- as.matrix(data_valid[,names(beta_est1.4)])
-  
-  
-  
-  loglikval_1.4 <- sum( event_valid * log(hP_valid + (1/time_valid)*splinecubeP(time_valid, gamma_est1.4, flex.model1.4$m, flex.model1.4$mpos)$spln *
-                                            exp(splinecube(time_valid, gamma_est1.4, flex.model1.4$m, flex.model1.4$mpos)$spln + cova_valid %*% beta_est1.4) ) -
-                          exp(splinecube(time_valid, gamma_est1.4, flex.model1.4$m, flex.model1.4$mpos)$spln 
-                              + cova_valid %*% beta_est1.4) )
   
   ### flex 2
   #2.2
@@ -1133,39 +963,7 @@ simulate_iteration <- function(i, N){
   }
   
   loglikval_2.2 <- sum(value)
-  #2.4
-  
-  beta_est2.4 <- c()
-  gamma_est2.4 <- c()
-  for (i in 1:length(flex.model2.4$correstab)) {
-    beta_est2.4 <- c(beta_est2.4,unname( flex.model2.4$coefficients[(1:(dim(flex.model2.4$x)[2])+(dim(flex.model2.4$x)[2]+flex.model2.4$m+2)*(i-1))] ) ) 
-    gamma_est2.4 <- c(gamma_est2.4, unname( flex.model2.4$coefficients[(dim(flex.model2.4$x)[2]+1):(dim(flex.model2.4$x)[2]+ (flex.model2.4$m+2)) +(dim(flex.model2.4$x)[2]+flex.model2.4$m+2)*(i-1)] ))
-  }
-  value <- c()
-  K <- sort(unique(data_valid$sex.organ))
-  cova_valid2 <- cova_valid[,-((dim(cova_valid)[2]-1):dim(cova_valid)[2])]
-  for(k in K){
-    betak <- beta_est2.4[(1+(k-1)*3):(3+(k-1)*3)]
-    gammak <- gamma_est2.4[(1+(k-1)*(flex.model2.4$m+2)):(flex.model2.4$m+2+(k-1)*(flex.model2.4$m+2))]
-    idx <- data_valid$sex.organ == k
-    
-    timek <- time_valid[idx]
-    eventk <- event_valid[idx]
-    hPk <- hP_valid[idx]
-    covak <- cova_valid2[idx, , drop = FALSE]
-    # wk <- w[idx]
-    
-    splk <- splinecube(timek, gammak, flex.model2.4$m, flex.model2.4$mpos[,k])$spln
-    splkP <- splinecubeP(timek, gammak, flex.model2.4$m, flex.model2.4$mpos[,k])$spln
-    linpred <- splk + as.matrix(covak) %*% as.matrix(betak)
-    
-    value_strate <- sum((eventk * log(hPk + (1 / timek) * splkP * exp(linpred)) - exp(linpred)))
-    
-    
-    value <- c(value, value_strate)
-  }
-  
-  loglikval_2.4 <- sum(value)
+
   ### WG
   #HC
   beta_est_HC <- logcoeffWGHC[1:(length(logcoeffWGHC)-3)]
@@ -1269,8 +1067,7 @@ simulate_iteration <- function(i, N){
   
   ############ enregistrement
   logliksval <- as.data.frame(c(plann = loglikval_plann, flex1.2 = loglikval_1.2,
-                                flex1.4 = loglikval_1.4, flex2.2 = loglikval_2.2,
-                                flex2.4 = loglikval_2.4, WG = loglikval_WG,
+                                flex2.2 = loglikval_2.2, WG = loglikval_WG,
                                 WG_HC = loglikval_WG_HC, WG_HR = loglikval_WG_HR, 
                                 WG_FC = loglikval_WG_FC, WG_FR = loglikval_WG_FR ))
   
@@ -1294,20 +1091,12 @@ simulate_iteration <- function(i, N){
   mean_flex1.2 <- t(data.frame(flex1.2=mean.flex1.2))
   write.table(mean_flex1.2, paste0(path0, "TRAIN/WHOLE/FLEX1.2/mean_survival/",i,"_mean_flex12.csv"), sep = ";", row.names = F, col.names = T)
   
-  ##4 noeuds
-  mean_flex1.4 <- t(data.frame(flex1.4=mean.flex1.4))
-  write.table(mean_flex1.4, paste0(path0, "TRAIN/WHOLE/FLEX1.4/mean_survival/",i,"_mean_flex14.csv"), sep = ";", row.names = F, col.names = T)
-  
   ######FLEX2
   
   ##2 noeuds
   mean_flex2.2 <- t(data.frame(flex2.2=mean.flex2.2))
   write.table(mean_flex2.2, paste0(path0, "TRAIN/WHOLE/FLEX2.2/mean_survival/",i,"_mean_flex22.csv"), sep = ";", row.names = F, col.names = T)
-  
-  ##4 noeuds
-  mean_flex2.4 <- t(data.frame(flex2.4=mean.flex2.4))
-  write.table(mean_flex2.4, paste0(path0, "TRAIN/WHOLE/FLEX2.4/mean_survival/",i,"_mean_flex24.csv"), sep = ";", row.names = F, col.names = T)
-  
+
   ######WG
   
   mean_flexWG <- t(data.frame(flexWG=mean.WG))
@@ -1360,19 +1149,6 @@ simulate_iteration <- function(i, N){
   mean.flex1.2_STRATES <- data.frame(strat = rownames(mean.flex1.2_STRATES), mean.flex1.2_STRATES)
   write.table(mean.flex1.2_STRATES, paste0(path0, "TRAIN/STRATA/FLEX1.2/mean_survival/",i,"mean_flex12_strates.csv"), sep = ";",row.names = F, col.names = T)
   
-  ##4 noeuds
-  
-  mean.flex1.4_STRATES = c()
-  
-  for (j in strata_names) {
-    
-    mean.flex1.4_STRATES <- rbind(mean.flex1.4_STRATES, get(paste0("mean.flex1.4_", j) ) )
-    rownames(mean.flex1.4_STRATES)[nrow(mean.flex1.4_STRATES)] <- paste0("mean.flex1.4_", j)
-  }
-  
-  mean.flex1.4_STRATES <- data.frame(strat = rownames(mean.flex1.4_STRATES), mean.flex1.4_STRATES)
-  write.table(mean.flex1.4_STRATES, paste0(path0, "TRAIN/STRATA/FLEX1.4/mean_survival/",i,"mean_flex14_strates.csv"), sep = ";",row.names = F, col.names = T)
-  
   #flex2
   
   ## 2 noeuds
@@ -1387,19 +1163,6 @@ simulate_iteration <- function(i, N){
   
   mean.flex2.2_STRATES <- data.frame(strat = rownames(mean.flex2.2_STRATES), mean.flex2.2_STRATES)
   write.table(mean.flex2.2_STRATES, paste0(path0, "TRAIN/STRATA/FLEX2.2/mean_survival/",i,"mean_flex22_strates.csv"), sep = ";",row.names = F, col.names = T)
-  
-  ## 4 noeuds
-  
-  mean.flex2.4_STRATES = c()
-  
-  for (j in strata_names) {
-    
-    mean.flex2.4_STRATES <- rbind(mean.flex2.4_STRATES, get(paste0("mean.flex2.4_", j) ) )
-    rownames(mean.flex2.4_STRATES)[nrow(mean.flex2.4_STRATES)] <- paste0("mean.flex2.4_", j)
-  }
-  
-  mean.flex2.4_STRATES <- data.frame(strat = rownames(mean.flex2.4_STRATES), mean.flex2.4_STRATES)
-  write.table(mean.flex2.4_STRATES, paste0(path0, "TRAIN/STRATA/FLEX2.4/mean_survival/",i,"mean_flex24_strates.csv"), sep = ";",row.names = F, col.names = T)
   
   #WG
   mean.WG_STRATES = c()
@@ -1450,21 +1213,12 @@ simulate_iteration <- function(i, N){
   write.table(ind_flex1.2, paste0(path0, "TRAIN/WHOLE/FLEX1.2/individual_survival/"
                                   ,i,"_ind_flex12.csv"), sep = ";", row.names = F, col.names = T)
   
-  ##4 noeuds
-  ind_flex1.4 <- data.frame(flexpred1.4)
-  write.table(ind_flex1.4, paste0(path0, "TRAIN/WHOLE/FLEX1.4/individual_survival/"
-                                  ,i,"_ind_flex14.csv"), sep = ";", row.names = F, col.names = T)
   ######FLEX2
   
   ##2 noeuds
   ind_flex2.2 <- data.frame(flexpred2.2)
   write.table(ind_flex2.2, paste0(path0, "TRAIN/WHOLE/FLEX2.2/individual_survival/"
                                   ,i,"_ind_flex22.csv"), sep = ";", row.names = F, col.names = T)
-  
-  ##4 noeuds
-  ind_flex2.4 <- data.frame(flexpred2.4)
-  write.table(ind_flex2.4, paste0(path0, "TRAIN/WHOLE/FLEX2.4/individual_survival/"
-                                  ,i,"_ind_flex24.csv"), sep = ";", row.names = F, col.names = T)
   
   ######WG
   
@@ -1506,15 +1260,7 @@ simulate_iteration <- function(i, N){
     write.table(ind_flex1.2, paste0(path0, "TRAIN/STRATA/FLEX1.2/individual_survival/", i, "_ind_flex12_", j, ".csv"),
                 sep = ";",row.names = F, col.names = T)
   }
-  
-  ## 4 noeuds
-  for (j in strata_names) {
-    
-    ind_flex1.4 <- data.frame(get(paste0("flexpred1.4_", j)))
-    
-    write.table(ind_flex1.4, paste0(path0, "TRAIN/STRATA/FLEX1.4/individual_survival/", i, "_ind_flex14_", j, ".csv"),
-                sep = ";",row.names = F, col.names = T)
-  }
+
   
   #flex2
   
@@ -1527,14 +1273,6 @@ simulate_iteration <- function(i, N){
                 sep = ";",row.names = F, col.names = T)
   }
   
-  ##4 noeuds
-  for (j in strata_names) {
-    
-    ind_flex2.4 <- data.frame(get(paste0("flexpred2.4_", j)))
-    
-    write.table(ind_flex2.4, paste0(path0, "TRAIN/STRATA/FLEX2.4/individual_survival/", i, "_ind_flex24_", j, ".csv"),
-                sep = ";",row.names = F, col.names = T)
-  }
   #WG
   
   for (j in strata_names) {
@@ -1568,10 +1306,6 @@ simulate_iteration <- function(i, N){
   mean_flexval1.2 <- t(data.frame(flex1.2=mean.flexval1.2))
   write.table(mean_flexval1.2, paste0(path0, "VALID/WHOLE/FLEX1.2/mean_survival/"
                                       ,i,"_mean_flexval12.csv"), sep = ";", row.names = F, col.names = T)
-  ##4 noeuds
-  mean_flexval1.4 <- t(data.frame(flex1.4=mean.flexval1.4))
-  write.table(mean_flexval1.4, paste0(path0, "VALID/WHOLE/FLEX1.4/mean_survival/"
-                                      ,i,"_mean_flexval14.csv"), sep = ";", row.names = F, col.names = T)
   
   ######FLEX2
   
@@ -1580,10 +1314,6 @@ simulate_iteration <- function(i, N){
   write.table(mean_flexval2.2, paste0(path0, "VALID/WHOLE/FLEX2.2/mean_survival/"
                                       ,i,"_mean_flexval22.csv"), sep = ";", row.names = F, col.names = T)
   
-  ## 4 noeuds
-  mean_flexval2.4 <- t(data.frame(flex2.4=mean.flexval2.4))
-  write.table(mean_flexval2.4, paste0(path0, "VALID/WHOLE/FLEX2.4/mean_survival/"
-                                      ,i,"_mean_flexval24.csv"), sep = ";", row.names = F, col.names = T)
   ######WG
   
   mean_flexWGval <- t(data.frame(flexWG=mean.WGval))
@@ -1637,19 +1367,6 @@ simulate_iteration <- function(i, N){
   mean.flexval1.2_STRATES <- data.frame(strat = rownames(mean.flexval1.2_STRATES), mean.flexval1.2_STRATES)
   write.table(mean.flexval1.2_STRATES, paste0(path0, "VALID/STRATA/FLEX1.2/mean_survival/",i,"mean_flexval12_strates.csv"), sep = ";",row.names = F, col.names = T)
   
-  ##4 noeuds
-  mean.flexval1.4_STRATES = c()
-  
-  for (j in strata_names) {
-    
-    mean.flexval1.4_STRATES <- rbind(mean.flexval1.4_STRATES, get(paste0("mean.flexval1.4_", j) ) )
-    rownames(mean.flexval1.4_STRATES)[nrow(mean.flexval1.4_STRATES)] <- paste0("mean.flexval1.4_", j)
-  }
-  
-  mean.flexval1.4_STRATES <- data.frame(strat = rownames(mean.flexval1.4_STRATES), mean.flexval1.4_STRATES)
-  write.table(mean.flexval1.4_STRATES, paste0(path0, "VALID/STRATA/FLEX1.4/mean_survival/",i,"mean_flexval14_strates.csv"), sep = ";",row.names = F, col.names = T)
-  
-  
   #flex2
   
   ##2 noeuds
@@ -1663,18 +1380,6 @@ simulate_iteration <- function(i, N){
   
   mean.flexval2.2_STRATES <- data.frame(strat = rownames(mean.flexval2.2_STRATES), mean.flexval2.2_STRATES)
   write.table(mean.flexval2.2_STRATES, paste0(path0, "VALID/STRATA/FLEX2.2/mean_survival/",i,"mean_flexval22_strates.csv"), sep = ";",row.names = F, col.names = T)
-  
-  ##4 noeuds
-  mean.flexval2.4_STRATES = c()
-  
-  for (j in strata_names) {
-    
-    mean.flexval2.4_STRATES <- rbind(mean.flexval2.4_STRATES, get(paste0("mean.flexval2.4_", j) ) )
-    rownames(mean.flexval2.4_STRATES)[nrow(mean.flexval2.4_STRATES)] <- paste0("mean.flexval2.4_", j)
-  }
-  
-  mean.flexval2.4_STRATES <- data.frame(strat = rownames(mean.flexval2.4_STRATES), mean.flexval2.4_STRATES)
-  write.table(mean.flexval2.4_STRATES, paste0(path0, "VALID/STRATA/FLEX2.4/mean_survival/",i,"mean_flexval24_strates.csv"), sep = ";",row.names = F, col.names = T)
   
   #WG
   mean.WGval_STRATES = c()
@@ -1724,11 +1429,6 @@ simulate_iteration <- function(i, N){
   write.table(ind_flexval1.2, paste0(path0, "VALID/WHOLE/FLEX1.2/individual_survival/"
                                      ,i,"_ind_flexval12.csv"), sep = ";", row.names = F, col.names = T)
   
-  ##4 noeuds
-  
-  ind_flexval1.4 <- data.frame(flexpredval1.4)
-  write.table(ind_flexval1.4, paste0(path0, "VALID/WHOLE/FLEX1.4/individual_survival/"
-                                     ,i,"_ind_flexval14.csv"), sep = ";", row.names = F, col.names = T)
   ######FLEX2
   
   ##2 noeuds
@@ -1736,11 +1436,7 @@ simulate_iteration <- function(i, N){
   write.table(ind_flexval2.2, paste0(path0, "VALID/WHOLE/FLEX2.2/individual_survival/"
                                      ,i,"_ind_flexval22.csv"), sep = ";", row.names = F, col.names = T)
   
-  ##4 noeuds
-  ind_flexval2.4 <- data.frame(flexpredval2.4)
-  write.table(ind_flexval2.4, paste0(path0, "VALID/WHOLE/FLEX2.4/individual_survival/"
-                                     ,i,"_ind_flexval24.csv"), sep = ";", row.names = F, col.names = T)
-  ######WG
+####WG
   
   ind_flexWGval <- data.frame(WGpredval)
   write.table(ind_flexWGval, paste0(path0, "VALID/WHOLE/WG/individual_survival/"
@@ -1780,14 +1476,7 @@ simulate_iteration <- function(i, N){
     write.table(ind_flexval1.2, paste0(path0, "VALID/STRATA/FLEX1.2/individual_survival/", i, "_ind_flexval12_", j, ".csv"),
                 sep = ";",row.names = F, col.names = T)
   }
-  ##4 noeuds
-  for (j in strata_names) {
-    
-    ind_flexval1.4 <- data.frame(get(paste0("flexpredval1.4_", j)))
-    
-    write.table(ind_flexval1.4, paste0(path0, "VALID/STRATA/FLEX1.4/individual_survival/", i, "_ind_flexval14_", j, ".csv"),
-                sep = ";",row.names = F, col.names = T)
-  }
+
   #flex2
   
   ##2 noeuds
@@ -1799,14 +1488,6 @@ simulate_iteration <- function(i, N){
                 sep = ";",row.names = F, col.names = T)
   }
   
-  ##4 noeuds
-  for (j in strata_names) {
-    
-    ind_flexval2.4 <- data.frame(get(paste0("flexpredval2.4_", j)))
-    
-    write.table(ind_flexval2.4, paste0(path0, "VALID/STRATA/FLEX2.4/individual_survival/", i, "_ind_flexval24_", j, ".csv"),
-                sep = ";",row.names = F, col.names = T)
-  }
   
   #WG
   
@@ -1877,13 +1558,7 @@ calc_indic <- function(N){
     rm(list =paste0("meanTrainflex1.2_", k))
   }
   
-  ##4 noeuds
-  ALL_flex1.4 <- data.frame()
-  for(k in iterations){
-    assign(paste0("meanTrainflex1.4_", k) , read.csv(paste0(path0, "TRAIN/WHOLE/FLEX1.4/mean_survival/",k,"_mean_flex14.csv"), sep = ";") )
-    ALL_flex1.4 <- rbind(ALL_flex1.4, get(paste0("meanTrainflex1.4_",k)))
-    rm(list =paste0("meanTrainflex1.4_", k))
-  }
+
   
   ###flex2
   
@@ -1895,13 +1570,6 @@ calc_indic <- function(N){
     rm(list =paste0("meanTrainflex2.2_", k))
   }
   
-  ##4 noeuds
-  ALL_flex2.4 <- data.frame()
-  for(k in iterations){
-    assign(paste0("meanTrainflex2.4_", k) , read.csv(paste0(path0, "TRAIN/WHOLE/FLEX2.4/mean_survival/",k,"_mean_flex24.csv"), sep = ";") )
-    ALL_flex2.4 <- rbind(ALL_flex2.4, get(paste0("meanTrainflex2.4_",k)))
-    rm(list =paste0("meanTrainflex2.4_", k))
-  }
   ### WG
   ALL_WG <- data.frame()
   for(k in iterations){
@@ -1924,14 +1592,8 @@ calc_indic <- function(N){
   biais_flex1.2 <- colMeans( ALL_flex1.2 - S_theo[col( ALL_flex1.2)] )
   RMSE_flex1.2 <- sqrt( colMeans( (ALL_flex1.2 - S_theo[col( ALL_flex1.2)])^2 ) )
   
-  biais_flex1.4 <- colMeans( ALL_flex1.4 - S_theo[col( ALL_flex1.4)] )
-  RMSE_flex1.4 <- sqrt( colMeans( (ALL_flex1.4 - S_theo[col( ALL_flex1.4)])^2 ) )
-  
   biais_flex2.2 <- colMeans( ALL_flex2.2 - S_theo[col( ALL_flex2.2)] )
   RMSE_flex2.2 <- sqrt( colMeans( (ALL_flex2.2 - S_theo[col( ALL_flex2.2)])^2 ) )
-  
-  biais_flex2.4 <- colMeans( ALL_flex2.4 - S_theo[col( ALL_flex2.4)] )
-  RMSE_flex2.4 <- sqrt( colMeans( (ALL_flex2.4 - S_theo[col( ALL_flex2.4)])^2 ) )
   
   biais_WG <- colMeans( ALL_WG - S_theo[col( ALL_WG)] )
   RMSE_WG <- sqrt( colMeans( (ALL_WG - S_theo[col( ALL_WG)])^2 ) )
@@ -1973,14 +1635,6 @@ calc_indic <- function(N){
     assign(paste0("ALL_PLANN_", j),data.frame())
   }
   
-  # for(k in iterations){
-  #   assign(paste0("meanTrainPLANNstr_", k) , read.csv(paste0(path0, "TRAIN/STRATA/PLANN/mean_survival/",k,"mean_plann_strates.csv"), sep = ";", row.names = 1) )
-  # 
-  #   for(j in strata_names){
-  #     assign(paste0("ALL_PLANN_",j) ,rbind(get(paste0("ALL_PLANN_",j)),get(paste0("meanTrainPLANNstr_",k))[paste0("mean.plann_", j),-1]  ) )
-  #   }
-  #   rm(list =paste0("meanTrainPLANNstr_", k))
-  # }
   
   for(k in iterations){
     HC <- read.csv(paste0(path0, "TRAIN/STRATA/PLANN/individual_survival/",k,"_ind_PLANN_HC.csv"), sep = ";")
@@ -2017,20 +1671,6 @@ calc_indic <- function(N){
     rm(list =paste0("meanTrainFLEX1.2str_", k))
   }
   
-  ##4 noeuds
-  for(j in strata_names){
-    assign(paste0("ALL_FLEX1.4_", j),data.frame()) 
-  }
-  
-  for(k in iterations){
-    assign(paste0("meanTrainFLEX1.4str_", k) , read.csv(paste0(path0, "TRAIN/STRATA/FLEX1.4/mean_survival/",k,"mean_flex14_strates.csv"), sep = ";", row.names = 1) )
-    
-    for(j in strata_names){
-      assign(paste0("ALL_FLEX1.4_",j) ,rbind(get(paste0("ALL_FLEX1.4_",j)), get(paste0("meanTrainFLEX1.4str_",k))[paste0("mean.flex1.4_", j),]  ) )
-    }
-    rm(list =paste0("meanTrainFLEX1.4str_", k))
-  }
-  
   ### flex2
   ##2 noeuds
   for(j in strata_names){
@@ -2046,19 +1686,6 @@ calc_indic <- function(N){
     rm(list =paste0("meanTrainFLEX2.2str_", k))
   }
   
-  ##4 noeuds
-  for(j in strata_names){
-    assign(paste0("ALL_FLEX2.4_", j),data.frame()) 
-  }
-  
-  for(k in iterations){
-    assign(paste0("meanTrainFLEX2.4str_", k) , read.csv(paste0(path0, "TRAIN/STRATA/FLEX2.4/mean_survival/",k,"mean_flex24_strates.csv"), sep = ";", row.names = 1) )
-    
-    for(j in strata_names){
-      assign(paste0("ALL_FLEX2.4_",j) ,rbind(get(paste0("ALL_FLEX2.4_",j)), get(paste0("meanTrainFLEX2.4str_",k))[paste0("mean.flex2.4_", j),]  ) )
-    }
-    rm(list =paste0("meanTrainFLEX2.4str_", k))
-  }
   ### WG
   
   for(j in strata_names){
@@ -2138,31 +1765,6 @@ calc_indic <- function(N){
   colnames(biais_FLEX1.2_strates) <- colnames(ALL_flex1.2)
   colnames(RMSE_FLEX1.2_strates) <- colnames(ALL_flex1.2)
   
-  #4 noeuds
-  biais_FLEX1.4_strates <- data.frame()
-  RMSE_FLEX1.4_strates <- data.frame()
-  for(j in strata_names){
-    assign(paste0("biais_FLEX1.4_", j), 
-           colMeans( get( paste0("ALL_FLEX1.4_", j) ) - get(paste0("S_theo", j) )[col(get( paste0("ALL_FLEX1.4_", j)) )] ) )
-    
-    #on concatene tous les résultats dans une dataframe pour ne pas saturer l'evt 
-    biais_FLEX1.4_strates <- rbind(biais_FLEX1.4_strates, get(paste0("biais_FLEX1.4_", j)) )
-    rownames(biais_FLEX1.4_strates)[dim(biais_FLEX1.4_strates)[1]] <- paste0(j)
-    rm(list = paste0("biais_FLEX1.4_", j))
-    
-    assign(paste0("RMSE_FLEX1.4_",  j) ,
-           sqrt( colMeans( ( get( paste0("ALL_FLEX1.4_", j) ) - 
-                               get(paste0("S_theo", j) )[col(get( paste0("ALL_FLEX1.4_", j)) )] )^2 ) ) )
-    
-    RMSE_FLEX1.4_strates <- rbind(RMSE_FLEX1.4_strates, get(paste0("RMSE_FLEX1.4_", j)) )
-    rownames(RMSE_FLEX1.4_strates)[dim(RMSE_FLEX1.4_strates)[1]] <- paste0(j)
-    rm(list = paste0("RMSE_FLEX1.4_", j))
-    
-  }
-  
-  colnames(biais_FLEX1.4_strates) <- colnames(ALL_flex1.4)
-  colnames(RMSE_FLEX1.4_strates) <- colnames(ALL_flex1.4)
-  
   
   # FLEX 2
   ##2 noeuds
@@ -2186,28 +1788,6 @@ calc_indic <- function(N){
   }
   colnames(biais_FLEX2.2_strates) <- colnames(ALL_flex2.2)
   colnames(RMSE_FLEX2.2_strates) <- colnames(ALL_flex2.2)
-  
-  ##4 noeuds
-  biais_FLEX2.4_strates <- data.frame()
-  RMSE_FLEX2.4_strates <- data.frame()
-  for(j in strata_names){
-    assign(paste0("biais_FLEX2.4_", j), 
-           colMeans( get( paste0("ALL_FLEX2.4_", j) ) - get(paste0("S_theo", j) )[col(get( paste0("ALL_FLEX2.4_", j)) )] ) )
-    
-    biais_FLEX2.4_strates <- rbind(biais_FLEX2.4_strates, get(paste0("biais_FLEX2.4_", j)) )
-    rownames(biais_FLEX2.4_strates)[dim(biais_FLEX2.4_strates)[1]] <- paste0(j)
-    rm(list = paste0("biais_FLEX2.4_", j))
-    
-    assign(paste0("RMSE_FLEX2.4_",  j) ,
-           sqrt( colMeans( ( get( paste0("ALL_FLEX2.4_", j) ) - 
-                               get(paste0("S_theo", j) )[col(get( paste0("ALL_FLEX2.4_", j)) )] )^2 ) ) )
-    
-    RMSE_FLEX2.4_strates <- rbind(RMSE_FLEX2.4_strates, get(paste0("RMSE_FLEX2.4_", j)) )
-    rownames(RMSE_FLEX2.4_strates)[dim(RMSE_FLEX2.4_strates)[1]] <- paste0(j)
-    rm(list = paste0("RMSE_FLEX2.4_", j))
-  }
-  colnames(biais_FLEX2.4_strates) <- colnames(ALL_flex2.4)
-  colnames(RMSE_FLEX2.4_strates) <- colnames(ALL_flex2.4)
   
   # WG 
   biais_WG_strates <- data.frame()
@@ -2285,12 +1865,6 @@ calc_indic <- function(N){
   #importation des données des différents modèles 
   #########
   ##plann
-  # ALL_PLANNval <- data.frame() 
-  # for(k in iterations){
-  #   assign(paste0("meanValidPLANN_", k) , read.csv(paste0(path0, "VALID/WHOLE/PLANN/mean_survival/",k,"_mean_PLANNval.csv"), sep = ";") )
-  #   ALL_PLANNval <-rbind(ALL_PLANNval, get(paste0("meanValidPLANN_", k)))
-  #   rm(list =paste0("meanValidPLANN_", k))
-  # }
   
   ALL_PLANNval <- data.frame() 
   for(k in iterations){
@@ -2307,13 +1881,7 @@ calc_indic <- function(N){
     ALL_flex1.2val <- rbind(ALL_flex1.2val, get(paste0("meanValidflex1.2_",k)))
     rm(list =paste0("meanValidflex1.2_", k))
   }
-  ##4 noeuds
-  ALL_flex1.4val <- data.frame()
-  for(k in iterations){
-    assign(paste0("meanValidflex1.4_", k) , read.csv(paste0(path0, "VALID/WHOLE/FLEX1.4/mean_survival/",k,"_mean_flexval14.csv"), sep = ";") )
-    ALL_flex1.4val <- rbind(ALL_flex1.4val, get(paste0("meanValidflex1.4_",k)))
-    rm(list =paste0("meanValidflex1.4_", k))
-  }
+  
   ### flex2
   
   ##2 noeuds
@@ -2324,13 +1892,6 @@ calc_indic <- function(N){
     rm(list =paste0("meanValidflex2.2_", k))
   }
   
-  ##4 noeuds
-  ALL_flex2.4val <- data.frame()
-  for(k in iterations){
-    assign(paste0("meanValidflex2.4_", k) , read.csv(paste0(path0, "VALID/WHOLE/FLEX2.4/mean_survival/",k,"_mean_flexval24.csv"), sep = ";") )
-    ALL_flex2.4val <- rbind(ALL_flex2.4val, get(paste0("meanValidflex2.4_",k)))
-    rm(list =paste0("meanValidflex2.4_", k))
-  }
   ### WG
   ALL_WGval <- data.frame()
   for(k in iterations){
@@ -2354,14 +1915,8 @@ calc_indic <- function(N){
   biais_flex1.2val <- colMeans( ALL_flex1.2val - S_theoval[col( ALL_flex1.2val)] )
   RMSE_flex1.2val <- sqrt( colMeans( (ALL_flex1.2val - S_theoval[col( ALL_flex1.2val)])^2 ) )
   
-  biais_flex1.4val <- colMeans( ALL_flex1.4val - S_theoval[col( ALL_flex1.4val)] )
-  RMSE_flex1.4val <- sqrt( colMeans( (ALL_flex1.4val - S_theoval[col( ALL_flex1.4val)])^2 ) )
-  
   biais_flex2.2val <- colMeans( ALL_flex2.2val - S_theoval[col( ALL_flex2.2val)] )
   RMSE_flex2.2val <- sqrt( colMeans( (ALL_flex2.2val - S_theoval[col( ALL_flex2.2val)])^2 ) )
-  
-  biais_flex2.4val <- colMeans( ALL_flex2.4val - S_theoval[col( ALL_flex2.4val)] )
-  RMSE_flex2.4val <- sqrt( colMeans( (ALL_flex2.4val - S_theoval[col( ALL_flex2.4val)])^2 ) )
   
   biais_WGval <- colMeans( ALL_WGval - S_theoval[col( ALL_WGval)] )
   RMSE_WGval <- sqrt( colMeans( (ALL_WGval - S_theoval[col( ALL_WGval)])^2 ) )
@@ -2403,14 +1958,6 @@ calc_indic <- function(N){
     assign(paste0("ALL_PLANNval_", j),data.frame()) 
   }
   
-  # for(k in iterations){
-  #   assign(paste0("meanValidPLANNstr_", k) , read.csv(paste0(path0, "VALID/STRATA/PLANN/mean_survival/",k,"mean_plannval_strates.csv"), sep = ";", row.names = 1) )
-  #   
-  #   for(j in strata_names){
-  #     assign(paste0("ALL_PLANNval_",j) ,rbind(get(paste0("ALL_PLANNval_",j)),get(paste0("meanValidPLANNstr_",k))[paste0("mean.plannval_", j),-1]  ) )
-  #   }
-  #   rm(list =paste0("meanValidPLANNstr_", k))
-  # }
   
   for(k in iterations){
     HC <- read.csv(paste0(path0, "VALID/STRATA/PLANN/individual_survival/",k,"_ind_PLANNval_HC.csv"), sep = ";")
@@ -2446,19 +1993,6 @@ calc_indic <- function(N){
     rm(list =paste0("meanValidFLEX1.2str_", k))
   }
   
-  ##4 noeuds
-  for(j in strata_names){
-    assign(paste0("ALL_FLEX1.4val_", j),data.frame()) 
-  }
-  
-  for(k in iterations){
-    assign(paste0("meanValidFLEX1.4str_", k) , read.csv(paste0(path0, "VALID/STRATA/FLEX1.4/mean_survival/",k,"mean_flexval14_strates.csv"), sep = ";", row.names = 1) )
-    
-    for(j in strata_names){
-      assign(paste0("ALL_FLEX1.4val_",j) ,rbind(get(paste0("ALL_FLEX1.4val_",j)), get(paste0("meanValidFLEX1.4str_",k))[paste0("mean.flexval1.4_", j),]  ) )
-    }
-    rm(list =paste0("meanValidFLEX1.4str_", k))
-  }
   ### flex2
   
   ##2 noeuds
@@ -2475,19 +2009,6 @@ calc_indic <- function(N){
     rm(list =paste0("meanValidFLEX2.2str_", k))
   }
   
-  ##4 noeuds
-  for(j in strata_names){
-    assign(paste0("ALL_FLEX2.4val_", j),data.frame()) 
-  }
-  
-  for(k in iterations){
-    assign(paste0("meanValidFLEX2.4str_", k) , read.csv(paste0(path0, "VALID/STRATA/FLEX2.4/mean_survival/",k,"mean_flexval24_strates.csv"), sep = ";", row.names = 1) )
-    
-    for(j in strata_names){
-      assign(paste0("ALL_FLEX2.4val_",j) ,rbind(get(paste0("ALL_FLEX2.4val_",j)), get(paste0("meanValidFLEX2.4str_",k))[paste0("mean.flexval2.4_", j),]  ) )
-    }
-    rm(list =paste0("meanValidFLEX2.4str_", k))
-  }
   ### WG
   
   for(j in strata_names){
@@ -2567,29 +2088,6 @@ calc_indic <- function(N){
   colnames(biais_FLEX1.2val_strates) <- colnames(ALL_flex1.2)
   colnames(RMSE_FLEX1.2val_strates) <- colnames(ALL_flex1.2)
   
-  ##4 noeuds
-  biais_FLEX1.4val_strates <- data.frame()
-  RMSE_FLEX1.4val_strates <- data.frame()
-  for(j in strata_names){
-    assign(paste0("biais_FLEX1.4val_", j), 
-           colMeans( get( paste0("ALL_FLEX1.4val_", j) ) - get(paste0("S_theoval", j) )[col(get( paste0("ALL_FLEX1.4val_", j)) )] ) )
-    
-    biais_FLEX1.4val_strates <- rbind(biais_FLEX1.4val_strates, get(paste0("biais_FLEX1.4val_", j)) )
-    rownames(biais_FLEX1.4val_strates)[dim(biais_FLEX1.4val_strates)[1]] <- paste0(j)
-    rm(list = paste0("biais_FLEX1.4val_", j))
-    
-    assign(paste0("RMSE_FLEX1.4val_",  j) ,
-           sqrt( colMeans( ( get( paste0("ALL_FLEX1.4val_", j) ) - 
-                               get(paste0("S_theoval", j) )[col(get( paste0("ALL_FLEX1.4val_", j)) )] )^2 ) ) )
-    
-    RMSE_FLEX1.4val_strates <- rbind(RMSE_FLEX1.4val_strates, get(paste0("RMSE_FLEX1.4val_", j)) )
-    rownames(RMSE_FLEX1.4val_strates)[dim(RMSE_FLEX1.4val_strates)[1]] <- paste0(j)
-    rm(list = paste0("RMSE_FLEX1.4val_", j))
-  }
-  
-  colnames(biais_FLEX1.4val_strates) <- colnames(ALL_flex1.4)
-  colnames(RMSE_FLEX1.4val_strates) <- colnames(ALL_flex1.4)
-  
   # FLEX 2
   
   ##2 noeuds
@@ -2617,30 +2115,6 @@ calc_indic <- function(N){
   colnames(biais_FLEX2.2val_strates) <- colnames(ALL_flex1.2)
   colnames(RMSE_FLEX2.2val_strates) <- colnames(ALL_flex1.2)
   
-  ##4 noeuds
-  biais_FLEX2.4val_strates <- data.frame()
-  RMSE_FLEX2.4val_strates <- data.frame()
-  
-  for(j in strata_names){
-    assign(paste0("biais_FLEX2.4val_", j), 
-           colMeans( get( paste0("ALL_FLEX2.4val_", j) ) - get(paste0("S_theoval", j) )[col(get( paste0("ALL_FLEX2.4val_", j)) )] ) )
-    
-    biais_FLEX2.4val_strates <- rbind(biais_FLEX2.4val_strates, get(paste0("biais_FLEX2.4val_", j)) )
-    rownames(biais_FLEX2.4val_strates)[dim(biais_FLEX2.4val_strates)[1]] <- paste0(j)
-    rm(list = paste0("biais_FLEX2.4val_", j))
-    
-    assign(paste0("RMSE_FLEX2.4val_",  j) ,
-           sqrt( colMeans( ( get( paste0("ALL_FLEX2.4val_", j) ) - 
-                               get(paste0("S_theoval", j) )[col(get( paste0("ALL_FLEX2.4val_", j)) )] )^2 ) ) )
-    
-    RMSE_FLEX2.4val_strates <- rbind(RMSE_FLEX2.4val_strates, get(paste0("RMSE_FLEX2.4val_", j)) )
-    rownames(RMSE_FLEX2.4val_strates)[dim(RMSE_FLEX2.4val_strates)[1]] <- paste0(j)
-    rm(list = paste0("RMSE_FLEX2.4val_", j))
-    
-  }
-  
-  colnames(biais_FLEX2.4val_strates) <- colnames(ALL_flex1.2)
-  colnames(RMSE_FLEX2.4val_strates) <- colnames(ALL_flex1.2)
   # WG 
   
   biais_WGval_strates <- data.frame()
@@ -2730,13 +2204,6 @@ calc_indic <- function(N){
   rm(biais_flex1.2, biais_FLEX1.2_strates)
   rm(RMSE_flex1.2, RMSE_FLEX1.2_strates)
   
-  ##4noeuds
-  biais_FLEX1.4 <- rbind(biais_flex1.4, biais_FLEX1.4_strates)
-  RMSE_FLEX1.4 <- rbind(RMSE_flex1.4, RMSE_FLEX1.4_strates)
-  rownames(biais_FLEX1.4)[1] <- "ALL"
-  rownames(RMSE_FLEX1.4)[1] <- "ALL"
-  rm(biais_flex1.4, biais_FLEX1.4_strates)
-  rm(RMSE_flex1.4, RMSE_FLEX1.4_strates)
   
   ##FLEX2
   ##2 noeuds
@@ -2746,13 +2213,6 @@ calc_indic <- function(N){
   rownames(RMSE_FLEX2.2)[1] <- "ALL"
   rm(biais_flex2.2, biais_FLEX2.2_strates)
   rm(RMSE_flex2.2, RMSE_FLEX2.2_strates)
-  ##4 noeuds
-  biais_FLEX2.4 <- rbind(biais_flex2.4, biais_FLEX2.4_strates)
-  RMSE_FLEX2.4 <- rbind(RMSE_flex2.4, RMSE_FLEX2.4_strates)
-  rownames(biais_FLEX2.4)[1] <- "ALL"
-  rownames(RMSE_FLEX2.4)[1] <- "ALL"
-  rm(biais_flex2.4, biais_FLEX2.4_strates)
-  rm(RMSE_flex2.4, RMSE_FLEX2.4_strates)
   ##WG
   
   biais_WG <- rbind(biais_WG, biais_WG_strates)
@@ -2787,13 +2247,7 @@ calc_indic <- function(N){
   rownames(RMSE_FLEX1.2val)[1] <- "ALL"
   rm(biais_flex1.2val, biais_FLEX1.2val_strates)
   rm(RMSE_flex1.2val, RMSE_FLEX1.2val_strates)
-  ##4 noeuds
-  biais_FLEX1.4val <- rbind(biais_flex1.4val, biais_FLEX1.4val_strates)
-  RMSE_FLEX1.4val <- rbind(RMSE_flex1.4val, RMSE_FLEX1.4val_strates)
-  rownames(biais_FLEX1.4val)[1] <- "ALL"
-  rownames(RMSE_FLEX1.4val)[1] <- "ALL"
-  rm(biais_flex1.4val, biais_FLEX1.4val_strates)
-  rm(RMSE_flex1.4val, RMSE_FLEX1.4val_strates)
+  
   ##FLEX2
   ##2 noeuds
   biais_FLEX2.2val <- rbind(biais_flex2.2val, biais_FLEX2.2val_strates)
@@ -2802,13 +2256,7 @@ calc_indic <- function(N){
   rownames(RMSE_FLEX2.2val)[1] <- "ALL"
   rm(biais_flex2.2val, biais_FLEX2.2val_strates)
   rm(RMSE_flex2.2val, RMSE_FLEX2.2val_strates)
-  ##4 noeuds
-  biais_FLEX2.4val <- rbind(biais_flex2.4val, biais_FLEX2.4val_strates)
-  RMSE_FLEX2.4val <- rbind(RMSE_flex2.4val, RMSE_FLEX2.4val_strates)
-  rownames(biais_FLEX2.4val)[1] <- "ALL"
-  rownames(RMSE_FLEX2.4val)[1] <- "ALL"
-  rm(biais_flex2.4val, biais_FLEX2.4val_strates)
-  rm(RMSE_flex2.4val, RMSE_FLEX2.4val_strates)
+
   ##WG
   
   biais_WGval <- rbind(biais_WGval, biais_WGval_strates)
@@ -2866,17 +2314,6 @@ calc_indic <- function(N){
     rm(list = paste0("ALL_FLEX1.2_",j) )
   }
   
-  ##4 noeuds
-  FLEX1.4_means_names <- c()
-  for(j in strata_names){
-    FLEX1.4_means_names <- c(FLEX1.4_means_names, paste0("ALL_FLEX1.4_",j))
-  }
-  FLEX1.4_means <- c(mget("ALL_flex1.4"), mget(FLEX1.4_means_names))
-  rm(ALL_flex1.4)
-  rm(FLEX1.4_means_names)
-  for(j in strata_names){
-    rm(list = paste0("ALL_FLEX1.4_",j) )
-  }
   
   ##FLEX2
   ##2 noeuds
@@ -2890,17 +2327,7 @@ calc_indic <- function(N){
   for(j in strata_names){
     rm(list = paste0("ALL_FLEX2.2_",j) )
   }
-  ##4 noeuds
-  FLEX2.4_means_names <- c()
-  for(j in strata_names){
-    FLEX2.4_means_names <- c(FLEX2.4_means_names, paste0("ALL_FLEX2.4_",j))
-  }
-  FLEX2.4_means <- c(mget("ALL_flex2.4"), mget(FLEX2.4_means_names))
-  rm(ALL_flex2.4)
-  rm(FLEX2.4_means_names)
-  for(j in strata_names){
-    rm(list = paste0("ALL_FLEX2.4_",j) )
-  }
+
   ##WG
   WG_means_names <- c()
   for(j in strata_names){
@@ -2960,17 +2387,7 @@ calc_indic <- function(N){
     rm(list = paste0("ALL_FLEX1.2val_",j) )
   }
   
-  ##4 noeuds
-  FLEX1.4val_means_names <- c()
-  for(j in strata_names){
-    FLEX1.4val_means_names <- c(FLEX1.4val_means_names, paste0("ALL_FLEX1.4val_",j))
-  }
-  FLEX1.4val_means <- c(mget("ALL_flex1.4val"), mget(FLEX1.4val_means_names))
-  rm(ALL_flex1.4val)
-  rm(FLEX1.4val_means_names)
-  for(j in strata_names){
-    rm(list = paste0("ALL_FLEX1.4val_",j) )
-  }
+
   ##FLEX2
   ##2 noeuds
   
@@ -2985,18 +2402,6 @@ calc_indic <- function(N){
     rm(list = paste0("ALL_FLEX2.2val_",j) )
   }
   
-  ##4 noeuds
-  
-  FLEX2.4val_means_names <- c()
-  for(j in strata_names){
-    FLEX2.4val_means_names <- c(FLEX2.4val_means_names, paste0("ALL_FLEX2.4val_",j))
-  }
-  FLEX2.4val_means <- c(mget("ALL_flex2.4val"), mget(FLEX2.4val_means_names))
-  rm(ALL_flex2.4val)
-  rm(FLEX2.4val_means_names)
-  for(j in strata_names){
-    rm(list = paste0("ALL_FLEX2.4val_",j) )
-  }
   ##WG
   WGval_means_names <- c()
   for(j in strata_names){
@@ -3044,12 +2449,9 @@ calc_indic <- function(N){
     #flex1
     assign(paste0("indTrainFLEX1.2_", k) , read.csv(paste0(path0, "TRAIN/WHOLE/FLEX1.2/individual_survival/",k,"_ind_flex12.csv"),
                                                     sep = ";") )
-    assign(paste0("indTrainFLEX1.4_", k) , read.csv(paste0(path0, "TRAIN/WHOLE/FLEX1.4/individual_survival/",k,"_ind_flex14.csv"),
-                                                    sep = ";") )
+
     #flex2
     assign(paste0("indTrainFLEX2.2_", k) , read.csv(paste0(path0, "TRAIN/WHOLE/FLEX2.2/individual_survival/",k,"_ind_flex22.csv"),
-                                                    sep = ";") )
-    assign(paste0("indTrainFLEX2.4_", k) , read.csv(paste0(path0, "TRAIN/WHOLE/FLEX2.4/individual_survival/",k,"_ind_flex24.csv"),
                                                     sep = ";") )
     #WG
     assign(paste0("indTrainWG_", k) , read.csv(paste0(path0, "TRAIN/WHOLE/WG/individual_survival/",k,"_ind_WG.csv"),
@@ -3062,18 +2464,16 @@ calc_indic <- function(N){
     datatrain <- get(paste0("DATATrain_", k))
     ind_estimP <- get(paste0("indTrainPLANN_", k))
     ind_estimF1.2 <- get(paste0("indTrainFLEX1.2_", k))
-    ind_estimF1.4 <- get(paste0("indTrainFLEX1.4_", k))
     ind_estimF2.2 <- get(paste0("indTrainFLEX2.2_", k))
-    ind_estimF2.4 <- get(paste0("indTrainFLEX2.4_", k))
     ind_estimWG <- get(paste0("indTrainWG_", k))
     
     rm(list = c(paste0("DATATrain_",k), paste0("indTrainPLANN_",k),
-                paste0("indTrainFLEX1.2_",k), paste0("indTrainFLEX1.4_",k),
-                paste0("indTrainFLEX2.2_",k), paste0("indTrainFLEX2.4_",k),
+                paste0("indTrainFLEX1.2_",k),
+                paste0("indTrainFLEX2.2_",k),
                 paste0("indTrainWG_",k)))
     
     # Initialiser les vecteurs de résultats
-    hold_P <- hold_F1.2 <- hold_F1.4 <- hold_F2.2 <- hold_F2.4 <- hold_WG <- c()
+    hold_P <- hold_F1.2 <- hold_F2.2 <- hold_WG <- c()
     # sort(unique(1-ind_estimP[, l + 1]))
     # unique( quantile( 1-ind_estimP[, l + 1],  probs= seq(0,1, by = 0.01)) ) #pas en dessous de 20 points 0.025
     
@@ -3084,15 +2484,9 @@ calc_indic <- function(N){
       hold_F1.2 <- c(hold_F1.2, roc.net(datatrain$times, datatrain$status, 1-ind_estimF1.2[, l], datatrain$age, datatrain$sexchara,
                                         datatrain$year, slopop, pro.time = newtimes[l],
                                         cut.off = unique( quantile( 1-ind_estimF1.2[, l],  probs= seq(0,1, by = 0.01)) ))$auc)
-      hold_F1.4 <- c(hold_F1.4, roc.net(datatrain$times, datatrain$status, 1-ind_estimF1.4[, l], datatrain$age, datatrain$sexchara,
-                                        datatrain$year, slopop, pro.time = newtimes[l],
-                                        cut.off = unique( quantile( 1-ind_estimF1.4[, l],  probs= seq(0,1, by = 0.01)) ))$auc)
       hold_F2.2 <- c(hold_F2.2, roc.net(datatrain$times, datatrain$status, 1-ind_estimF2.2[, l], datatrain$age, datatrain$sexchara,
                                         datatrain$year, slopop, pro.time = newtimes[l], 
                                         cut.off = unique( quantile( 1-ind_estimF2.2[, l],  probs= seq(0,1, by = 0.01)) ))$auc)
-      hold_F2.4 <- c(hold_F2.4, roc.net(datatrain$times, datatrain$status, 1-ind_estimF2.4[, l], datatrain$age, datatrain$sexchara,
-                                        datatrain$year, slopop, pro.time = newtimes[l],
-                                        cut.off = unique( quantile( 1-ind_estimF2.4[, l],  probs= seq(0,1, by = 0.01)) ))$auc)
       hold_WG   <- c(hold_WG,   roc.net(datatrain$times, datatrain$status, 1-ind_estimWG[, l],   datatrain$age, datatrain$sexchara,
                                         datatrain$year, slopop, pro.time = newtimes[l],
                                         cut.off = unique( quantile( 1-ind_estimWG[, l],  probs= seq(0,1, by = 0.01)) ))$auc)
@@ -3101,9 +2495,7 @@ calc_indic <- function(N){
     return(list(
       P     = hold_P,
       F1.2  = hold_F1.2,
-      F1.4  = hold_F1.4,
       F2.2  = hold_F2.2,
-      F2.4  = hold_F2.4,
       WG    = hold_WG
     ))
   }
@@ -3113,21 +2505,19 @@ calc_indic <- function(N){
   #supression des bases inutiles 
   for(k in iterations){
     rm(list = c(paste0("DATATrain_",k), paste0("indTrainPLANN_",k),
-                paste0("indTrainFLEX1.2_",k), paste0("indTrainFLEX1.4_",k),
-                paste0("indTrainFLEX2.2_",k), paste0("indTrainFLEX2.4_",k),
+                paste0("indTrainFLEX1.2_",k),
+                paste0("indTrainFLEX2.2_",k),
                 paste0("indTrainWG_",k)))
   }
   # Transformer en matrices pour chaque méthode :
   AUC_WHOLE_P    <- do.call(rbind, lapply(results_list, function(x) x$P))
   AUC_WHOLE_F1.2 <- do.call(rbind, lapply(results_list, function(x) x$F1.2))
-  AUC_WHOLE_F1.4 <- do.call(rbind, lapply(results_list, function(x) x$F1.4))
   AUC_WHOLE_F2.2 <- do.call(rbind, lapply(results_list, function(x) x$F2.2))
-  AUC_WHOLE_F2.4 <- do.call(rbind, lapply(results_list, function(x) x$F2.4))
   AUC_WHOLE_WG   <- do.call(rbind, lapply(results_list, function(x) x$WG))
   
   
   ### pour renommer les colonnes avec les temps de prognostic
-  for(l in c("P","F1.2","F1.4","F2.2","F2.4","WG")){
+  for(l in c("P","F1.2","F2.2","WG")){
     dathold <- get(paste0("AUC_WHOLE_", l))
     colnames(dathold) <- c("1 year", "3 years", "5 years", "10 years")
     rownames(dathold) <- c(iterations)
@@ -3135,7 +2525,7 @@ calc_indic <- function(N){
   }
   ## moyennes par temps 
   
-  for(l in c("P","F1.2","F1.4","F2.2","F2.4","WG")){
+  for(l in c("P","F1.2","F2.2","WG")){
     
     assign(paste0("AUC_means_",l) ,  colMeans( get(paste0("AUC_WHOLE_",l)) ) )
     
@@ -3156,12 +2546,8 @@ calc_indic <- function(N){
       #flex1
       assign(paste0("indTrainFLEX1.2_",j,"_", k) , read.csv(paste0(path0, "TRAIN/STRATA/FLEX1.2/individual_survival/",k,"_ind_flex12_",j,".csv"),
                                                             sep = ";") )
-      assign(paste0("indTrainFLEX1.4_",j,"_", k) , read.csv(paste0(path0, "TRAIN/STRATA/FLEX1.4/individual_survival/",k,"_ind_flex14_",j,".csv"),
-                                                            sep = ";") )
       #flex2
       assign(paste0("indTrainFLEX2.2_",j,"_", k) , read.csv(paste0(path0, "TRAIN/STRATA/FLEX2.2/individual_survival/",k,"_ind_flex22_",j,".csv"),
-                                                            sep = ";") )
-      assign(paste0("indTrainFLEX2.4_",j,"_", k) , read.csv(paste0(path0, "TRAIN/STRATA/FLEX2.4/individual_survival/",k,"_ind_flex24_",j,".csv"),
                                                             sep = ";") )
       #WG
       assign(paste0("indTrainWG_",j,"_", k) , read.csv(paste0(path0, "TRAIN/STRATA/WG/individual_survival/",k,"_ind_WG_",j,".csv"),
@@ -3178,12 +2564,10 @@ calc_indic <- function(N){
       datatrain <- get(paste0("DATATrain_", j, "_", k))
       ind_estimP <- get(paste0("indTrainPLANN_", j, "_", k))
       ind_estimF1.2 <- get(paste0("indTrainFLEX1.2_", j, "_", k))
-      ind_estimF1.4 <- get(paste0("indTrainFLEX1.4_", j, "_", k))
       ind_estimF2.2 <- get(paste0("indTrainFLEX2.2_", j, "_", k))
-      ind_estimF2.4 <- get(paste0("indTrainFLEX2.4_", j, "_", k))
       ind_estimWG <- get(paste0("indTrainWG_", j, "_", k))
       
-      hold_P <- hold_F1.2 <- hold_F1.4 <- hold_F2.2 <- hold_F2.4 <- hold_WG <- c()
+      hold_P <- hold_F1.2 <- hold_F2.2 <- hold_WG <- c()
       
       for (l in seq_along(newtimes)) {
         hold_P    <- c(hold_P,    roc.net(datatrain$times, datatrain$status, 1-ind_estimP[,l + 1], datatrain$age, datatrain$sexchara,
@@ -3192,15 +2576,9 @@ calc_indic <- function(N){
         hold_F1.2 <- c(hold_F1.2, roc.net(datatrain$times, datatrain$status, 1-ind_estimF1.2[, l], datatrain$age, datatrain$sexchara,
                                           datatrain$year, slopop, pro.time = newtimes[l],
                                           cut.off = unique( quantile( 1-ind_estimF1.2[, l],  probs= seq(0,1, by = 0.01)) ))$auc)
-        hold_F1.4 <- c(hold_F1.4, roc.net(datatrain$times, datatrain$status, 1-ind_estimF1.4[, l], datatrain$age, datatrain$sexchara,
-                                          datatrain$year, slopop, pro.time = newtimes[l],
-                                          cut.off = unique( quantile( 1-ind_estimF1.4[, l],  probs= seq(0,1, by = 0.01)) ))$auc)
         hold_F2.2 <- c(hold_F2.2, roc.net(datatrain$times, datatrain$status, 1-ind_estimF2.2[, l], datatrain$age, datatrain$sexchara,
                                           datatrain$year, slopop, pro.time = newtimes[l], 
                                           cut.off = unique( quantile( 1-ind_estimF2.2[, l],  probs= seq(0,1, by = 0.01)) ))$auc)
-        hold_F2.4 <- c(hold_F2.4, roc.net(datatrain$times, datatrain$status, 1-ind_estimF2.4[, l], datatrain$age, datatrain$sexchara,
-                                          datatrain$year, slopop, pro.time = newtimes[l],
-                                          cut.off = unique( quantile( 1-ind_estimF2.4[, l],  probs= seq(0,1, by = 0.01)) ))$auc)
         hold_WG   <- c(hold_WG,   roc.net(datatrain$times, datatrain$status, 1-ind_estimWG[, l],   datatrain$age, datatrain$sexchara,
                                           datatrain$year, slopop, pro.time = newtimes[l],
                                           cut.off = unique( quantile( 1-ind_estimWG[, l],  probs= seq(0,1, by = 0.01)) ))$auc)
@@ -3210,9 +2588,7 @@ calc_indic <- function(N){
         k = k,
         P = hold_P,
         F1.2 = hold_F1.2,
-        F1.4 = hold_F1.4,
         F2.2 = hold_F2.2,
-        F2.4 = hold_F2.4,
         WG = hold_WG
       )
     }
@@ -3229,9 +2605,7 @@ calc_indic <- function(N){
         paste0("DATATrain_", j, "_", k),
         paste0("indTrainPLANN_", j, "_", k),
         paste0("indTrainFLEX1.2_", j, "_", k),
-        paste0("indTrainFLEX1.4_", j, "_", k),
         paste0("indTrainFLEX2.2_", j, "_", k),
-        paste0("indTrainFLEX2.4_", j, "_", k),
         paste0("indTrainWG_", j, "_", k)
       ))
     }
@@ -3242,13 +2616,11 @@ calc_indic <- function(N){
   for(j in strata_names){
     assign(paste0("AUC_",j,"_P"), do.call(rbind, lapply(res_all, function(x) x[[j]]$P)) )
     assign(paste0("AUC_",j,"_F1.2"), do.call(rbind, lapply(res_all, function(x) x[[j]]$F1.2)) )
-    assign(paste0("AUC_",j,"_F1.4"), do.call(rbind, lapply(res_all, function(x) x[[j]]$F1.4)) )
     assign(paste0("AUC_",j,"_F2.2"), do.call(rbind, lapply(res_all, function(x) x[[j]]$F2.2)) )
-    assign(paste0("AUC_",j,"_F2.4"), do.call(rbind, lapply(res_all, function(x) x[[j]]$F2.4)) )
     assign(paste0("AUC_",j,"_WG"), do.call(rbind, lapply(res_all, function(x) x[[j]]$WG)) )
   }
   ### pour renommer les colonnes avec les temps de prognostic
-  for(l in c("P","F1.2","F1.4","F2.2","F2.4","WG")){
+  for(l in c("P","F1.2","F2.2","WG")){
     for(j in strata_names){
       dathold <- get(paste0("AUC_", j,"_",l))
       colnames(dathold) <- c("1 year", "3 years", "5 years", "10 years")
@@ -3258,7 +2630,7 @@ calc_indic <- function(N){
   }
   ## moyennes par temps 
   
-  for(l in c("P","F1.2","F1.4","F2.2","F2.4","WG")){
+  for(l in c("P","F1.2","F2.2","WG")){
     for(j in strata_names){
       assign(paste0("AUC_means_",j,"_",l) ,  colMeans( get(paste0("AUC_",j,"_",l)) ) )
     }
@@ -3269,7 +2641,7 @@ calc_indic <- function(N){
   
   ROCmean_results <- list()
   
-  for(l in c("P","F1.2","F1.4","F2.2","F2.4","WG")){
+  for(l in c("P","F1.2","F2.2","WG")){
     ROCmean_results[['WHOLE']][[l]] <- list()
     ROCmean_results[['WHOLE']][[l]] <- get( paste0("AUC_means_",l) )
     rm(list = paste0("AUC_means_",l))
@@ -3285,7 +2657,7 @@ calc_indic <- function(N){
   
   ROC_results <- list()
   
-  for(l in c("P","F1.2","F1.4","F2.2","F2.4","WG")){
+  for(l in c("P","F1.2","F2.2","WG")){
     ROC_results[['WHOLE']][[l]] <- list()
     ROC_results[['WHOLE']][[l]] <- get( paste0("AUC_WHOLE_",l) )
     rm(list = paste0("AUC_WHOLE_",l) )
@@ -3313,12 +2685,8 @@ calc_indic <- function(N){
     #flex1
     assign(paste0("indValidFLEX1.2_",k) , read.csv(paste0(path0, "VALID/WHOLE/FLEX1.2/individual_survival/",k,"_ind_flexval12.csv"),
                                                    sep = ";") )
-    assign(paste0("indValidFLEX1.4_",k) , read.csv(paste0(path0, "VALID/WHOLE/FLEX1.4/individual_survival/",k,"_ind_flexval14.csv"),
-                                                   sep = ";") )
     #flex2
     assign(paste0("indValidFLEX2.2_",k) , read.csv(paste0(path0, "VALID/WHOLE/FLEX2.2/individual_survival/",k,"_ind_flexval22.csv"),
-                                                   sep = ";") )
-    assign(paste0("indValidFLEX2.4_",k) , read.csv(paste0(path0, "VALID/WHOLE/FLEX2.4/individual_survival/",k,"_ind_flexval24.csv"),
                                                    sep = ";") )
     #WG
     assign(paste0("indValidWG_", k) , read.csv(paste0(path0, "VALID/WHOLE/WG/individual_survival/",k,"_ind_flexWGval.csv"),
@@ -3334,16 +2702,14 @@ calc_indic <- function(N){
     dataval <- get(paste0("DATAValid_",k))
     ind_estimP <- get(paste0("indValidPLANN_",k))
     ind_estimF1.2 <- get(paste0("indValidFLEX1.2_",k))
-    ind_estimF1.4 <- get(paste0("indValidFLEX1.4_", k))
     ind_estimF2.2 <- get(paste0("indValidFLEX2.2_", k))
-    ind_estimF2.4 <- get(paste0("indValidFLEX2.4_", k))
     ind_estimWG <- get(paste0("indValidWG_",k))
     
-    rm(list = c(paste0("DATAValid_",k), paste0("indValidPLANN_",k),paste0("indValidFLEX1.2_",k), paste0("indValidFLEX1.4_", k),
-                paste0("indValidFLEX2.2_", k),paste0("indValidFLEX2.4_", k),paste0("indValidWG_",k)))
+    rm(list = c(paste0("DATAValid_",k), paste0("indValidPLANN_",k),paste0("indValidFLEX1.2_",k),
+                paste0("indValidFLEX2.2_", k),paste0("indValidWG_",k)))
     
     # Initialiser les vecteurs de résultats
-    hold_P <- hold_F1.2 <- hold_F1.4 <- hold_F2.2 <- hold_F2.4 <- hold_WG <- c()
+    hold_P <- hold_F1.2 <- hold_F2.2 <- hold_WG <- c()
     
     ###PLANN
     for (l in seq_along(newtimes)) {
@@ -3353,15 +2719,9 @@ calc_indic <- function(N){
       hold_F1.2 <- c(hold_F1.2, roc.net(dataval$times, dataval$status, 1-ind_estimF1.2[, l], dataval$age, dataval$sexchara,
                                         dataval$year, slopop, pro.time = newtimes[l],
                                         cut.off = unique( quantile( 1-ind_estimF1.2[, l],  probs= seq(0,1, by = 0.01)) ))$auc)
-      hold_F1.4 <- c(hold_F1.4, roc.net(dataval$times, dataval$status, 1-ind_estimF1.4[, l], dataval$age, dataval$sexchara,
-                                        dataval$year, slopop, pro.time = newtimes[l],
-                                        cut.off = unique( quantile( 1-ind_estimF1.4[, l],  probs= seq(0,1, by = 0.01)) ))$auc)
       hold_F2.2 <- c(hold_F2.2, roc.net(dataval$times, dataval$status, 1-ind_estimF2.2[, l], dataval$age, dataval$sexchara,
                                         dataval$year, slopop, pro.time = newtimes[l], 
                                         cut.off = unique( quantile( 1-ind_estimF2.2[, l],  probs= seq(0,1, by = 0.01)) ))$auc)
-      hold_F2.4 <- c(hold_F2.4, roc.net(dataval$times, dataval$status, 1-ind_estimF2.4[, l], dataval$age, dataval$sexchara,
-                                        dataval$year, slopop, pro.time = newtimes[l],
-                                        cut.off = unique( quantile( 1-ind_estimF2.4[, l],  probs= seq(0,1, by = 0.01)) ))$auc)
       hold_WG   <- c(hold_WG,   roc.net(dataval$times, dataval$status, 1-ind_estimWG[, l],   dataval$age, dataval$sexchara,
                                         dataval$year, slopop, pro.time = newtimes[l],
                                         cut.off = unique( quantile( 1-ind_estimWG[, l],  probs= seq(0,1, by = 0.01)) ))$auc)
@@ -3370,9 +2730,7 @@ calc_indic <- function(N){
     return(list(
       P     = hold_P,
       F1.2  = hold_F1.2,
-      F1.4  = hold_F1.4,
       F2.2  = hold_F2.2,
-      F2.4  = hold_F2.4,
       WG    = hold_WG
     ))
   }
@@ -3382,20 +2740,18 @@ calc_indic <- function(N){
   #supression des bases inutiles 
   for(k in iterations){
     rm(list = c(paste0("DATAValid_",k), paste0("indValidPLANN_",k),
-                paste0("indValidFLEX1.2_",k), paste0("indValidFLEX1.4_",k),
-                paste0("indValidFLEX2.2_",k), paste0("indValidFLEX2.4_",k),
+                paste0("indValidFLEX1.2_",k),
+                paste0("indValidFLEX2.2_",k),
                 paste0("indValidWG_",k)))
   }
   # Transformer en matrices pour chaque méthode :
   AUCval_WHOLE_P    <- do.call(rbind, lapply(resultval_list, function(x) x$P))
   AUCval_WHOLE_F1.2 <- do.call(rbind, lapply(resultval_list, function(x) x$F1.2))
-  AUCval_WHOLE_F1.4 <- do.call(rbind, lapply(resultval_list, function(x) x$F1.4))
   AUCval_WHOLE_F2.2 <- do.call(rbind, lapply(resultval_list, function(x) x$F2.2))
-  AUCval_WHOLE_F2.4 <- do.call(rbind, lapply(resultval_list, function(x) x$F2.4))
   AUCval_WHOLE_WG   <- do.call(rbind, lapply(resultval_list, function(x) x$WG))
   
   ### pour renommer les colonnes avec les temps de prognostic
-  for(l in c("P","F1.2","F1.4","F2.2","F2.4","WG")){
+  for(l in c("P","F1.2","F2.2","WG")){
     dathold <- get(paste0("AUCval_WHOLE_", l))
     colnames(dathold) <- c("1 year", "3 years", "5 years", "10 years")
     rownames(dathold) <- c(iterations)
@@ -3403,7 +2759,7 @@ calc_indic <- function(N){
   }
   ## moyennes par temps 
   
-  for(l in c("P","F1.2","F1.4","F2.2","F2.4","WG")){
+  for(l in c("P","F1.2","F2.2","WG")){
     
     assign(paste0("AUCval_means_",l) ,  colMeans( get(paste0("AUCval_WHOLE_",l)) ) )
     
@@ -3424,12 +2780,8 @@ calc_indic <- function(N){
       #flex1
       assign(paste0("indValidFLEX1.2_",j,"_", k) , read.csv(paste0(path0, "VALID/STRATA/FLEX1.2/individual_survival/",k,"_ind_flexval12_",j,".csv"),
                                                             sep = ";") )
-      assign(paste0("indValidFLEX1.4_",j,"_", k) , read.csv(paste0(path0, "VALID/STRATA/FLEX1.4/individual_survival/",k,"_ind_flexval14_",j,".csv"),
-                                                            sep = ";") )
       #flex2
       assign(paste0("indValidFLEX2.2_",j,"_", k) , read.csv(paste0(path0, "VALID/STRATA/FLEX2.2/individual_survival/",k,"_ind_flexval22_",j,".csv"),
-                                                            sep = ";") )
-      assign(paste0("indValidFLEX2.4_",j,"_", k) , read.csv(paste0(path0, "VALID/STRATA/FLEX2.4/individual_survival/",k,"_ind_flexval24_",j,".csv"),
                                                             sep = ";") )
       #WG
       assign(paste0("indValidWG_",j,"_", k) , read.csv(paste0(path0, "VALID/STRATA/WG/individual_survival/",k,"_ind_WGval_",j,".csv"),
@@ -3445,15 +2797,13 @@ calc_indic <- function(N){
       dataval <- get(paste0("DATAValid_",j,"_", k))
       ind_estimP <- get(paste0("indValidPLANN_",j,"_", k))
       ind_estimF1.2 <- get(paste0("indValidFLEX1.2_",j,"_", k))
-      ind_estimF1.4 <- get(paste0("indValidFLEX1.4_",j,"_", k))
       ind_estimF2.2 <- get(paste0("indValidFLEX2.2_",j,"_", k))
-      ind_estimF2.4 <- get(paste0("indValidFLEX2.4_",j,"_", k))
       ind_estimWG <- get(paste0("indValidWG_",j,"_", k))
       
-      rm(list = c(paste0("DATAValid_",j,"_", k), paste0("indValidPLANN_",j,"_", k), paste0("indValidFLEX1.2_",j,"_", k),paste0("indValidFLEX1.4_",j,"_", k),
-                  paste0("indValidFLEX2.2_",j,"_", k), paste0("indValidFLEX2.2_",j,"_", k), paste0("indValidWG_",j,"_", k)))
+      rm(list = c(paste0("DATAValid_",j,"_", k), paste0("indValidPLANN_",j,"_", k), paste0("indValidFLEX1.2_",j,"_", k),
+                  paste0("indValidFLEX2.2_",j,"_", k), paste0("indValidWG_",j,"_", k)))
       
-      hold_P <- hold_F1.2 <- hold_F1.4 <- hold_F2.2 <- hold_F2.4 <- hold_WG <- c()
+      hold_P <- hold_F1.2 <- hold_F2.2 <- hold_WG <- c()
       
       for (l in seq_along(newtimes)) {
         hold_P    <- c(hold_P,    roc.net(dataval$times, dataval$status, 1-ind_estimP[,l + 1], dataval$age, dataval$sexchara,
@@ -3462,15 +2812,9 @@ calc_indic <- function(N){
         hold_F1.2 <- c(hold_F1.2, roc.net(dataval$times, dataval$status, 1-ind_estimF1.2[, l], dataval$age, dataval$sexchara,
                                           dataval$year, slopop, pro.time = newtimes[l],
                                           cut.off = unique( quantile( 1-ind_estimF1.2[, l],  probs= seq(0,1, by = 0.01)) ))$auc)
-        hold_F1.4 <- c(hold_F1.4, roc.net(dataval$times, dataval$status, 1-ind_estimF1.4[, l], dataval$age, dataval$sexchara,
-                                          dataval$year, slopop, pro.time = newtimes[l],
-                                          cut.off = unique( quantile( 1-ind_estimF1.4[, l],  probs= seq(0,1, by = 0.01)) ))$auc)
         hold_F2.2 <- c(hold_F2.2, roc.net(dataval$times, dataval$status, 1-ind_estimF2.2[, l], dataval$age, dataval$sexchara,
                                           dataval$year, slopop, pro.time = newtimes[l], 
                                           cut.off = unique( quantile( 1-ind_estimF2.2[, l],  probs= seq(0,1, by = 0.01)) ))$auc)
-        hold_F2.4 <- c(hold_F2.4, roc.net(dataval$times, dataval$status, 1-ind_estimF2.4[, l], dataval$age, dataval$sexchara,
-                                          dataval$year, slopop, pro.time = newtimes[l],
-                                          cut.off = unique( quantile( 1-ind_estimF2.4[, l],  probs= seq(0,1, by = 0.01)) ))$auc)
         hold_WG   <- c(hold_WG,   roc.net(dataval$times, dataval$status, 1-ind_estimWG[, l],   dataval$age, dataval$sexchara,
                                           dataval$year, slopop, pro.time = newtimes[l],
                                           cut.off = unique( quantile( 1-ind_estimWG[, l],  probs= seq(0,1, by = 0.01)) ))$auc)
@@ -3480,9 +2824,7 @@ calc_indic <- function(N){
         k = k,
         P = hold_P,
         F1.2 = hold_F1.2,
-        F1.4 = hold_F1.4,
         F2.2 = hold_F2.2,
-        F2.4 = hold_F2.4,
         WG = hold_WG
       )
     }
@@ -3498,9 +2840,7 @@ calc_indic <- function(N){
         paste0("DATAValid_", j, "_", k),
         paste0("indValidPLANN_", j, "_", k),
         paste0("indValidFLEX1.2_", j, "_", k),
-        paste0("indValidFLEX1.4_", j, "_", k),
         paste0("indValidFLEX2.2_", j, "_", k),
-        paste0("indValidFLEX2.4_", j, "_", k),
         paste0("indValidWG_", j, "_", k)
       ))
     }
@@ -3511,13 +2851,11 @@ calc_indic <- function(N){
   for(j in strata_names){
     assign(paste0("AUCval_",j,"_P"), do.call(rbind, lapply(resval_all, function(x) x[[j]]$P)) )
     assign(paste0("AUCval_",j,"_F1.2"), do.call(rbind, lapply(resval_all, function(x) x[[j]]$F1.2)) )
-    assign(paste0("AUCval_",j,"_F1.4"), do.call(rbind, lapply(resval_all, function(x) x[[j]]$F1.4)) )
     assign(paste0("AUCval_",j,"_F2.2"), do.call(rbind, lapply(resval_all, function(x) x[[j]]$F2.2)) )
-    assign(paste0("AUCval_",j,"_F2.4"), do.call(rbind, lapply(resval_all, function(x) x[[j]]$F2.4)) )
     assign(paste0("AUCval_",j,"_WG"), do.call(rbind, lapply(resval_all, function(x) x[[j]]$WG)) )
   }
   ### pour renommer les colonnes avec les temps de prognostic
-  for(l in c("P","F1.2","F1.4","F2.2","F2.4","WG")){
+  for(l in c("P","F1.2","F2.2","WG")){
     for(j in strata_names){
       dathold <- get(paste0("AUCval_", j,"_",l))
       colnames(dathold) <- c("1 year", "3 years", "5 years", "10 years")
@@ -3527,7 +2865,7 @@ calc_indic <- function(N){
   }
   ## moyennes par temps 
   
-  for(l in c("P","F1.2","F1.4","F2.2","F2.4","WG")){
+  for(l in c("P","F1.2","F2.2","WG")){
     for(j in strata_names){
       assign(paste0("AUCval_means_",j,"_",l) ,  colMeans( get(paste0("AUCval_",j,"_",l)) ) )
     }
@@ -3538,7 +2876,7 @@ calc_indic <- function(N){
   
   ROCmeanval_results <- list()
   
-  for(l in c("P","F1.2","F1.4","F2.2","F2.4","WG")){
+  for(l in c("P","F1.2","F2.2","WG")){
     ROCmeanval_results[['WHOLE']][[l]] <- list()
     ROCmeanval_results[['WHOLE']][[l]] <- get( paste0("AUCval_means_",l) )
     rm(list = paste0("AUCval_means_",l))
@@ -3554,7 +2892,7 @@ calc_indic <- function(N){
   
   ROCval_results <- list()
   
-  for(l in c("P","F1.2","F1.4","F2.2","F2.4","WG")){
+  for(l in c("P","F1.2","F2.2","WG")){
     ROCval_results[['WHOLE']][[l]] <- list()
     ROCval_results[['WHOLE']][[l]] <- get( paste0("AUCval_WHOLE_",l) )
     rm(list = paste0("AUCval_WHOLE_",l) )

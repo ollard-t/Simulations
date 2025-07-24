@@ -14,8 +14,8 @@
 
 ###Vérification que tous les dossiers de sauvegarde existent 
 file.exists("~/Documents/Rstudio/Simulations/BASES/")
-for(i in c(1000,3000,5000)){
-  path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/NPH/Output Simulations_N",N,"_NPH_HC/")
+for(N in c(1000,3000,5000)){
+  path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/NPH/Output simulations_N",N,"_NPH_HC/")
   print(file.exists(path0))
 }
 #################################################################################################
@@ -1805,7 +1805,7 @@ simulate_iteration <- function(i, N){
 
 ### FIN INDICATEURS ~ligne 3113
 
-calc_indic(N){
+calc_indic <- function(N){
   
     strata_names <- c("HC", "HR", "FC", "FR")
     newtimes <- c(365.241, 365.241*3, 365.241*5, 365.241*10) 

@@ -869,7 +869,7 @@ simulate_iteration <- function(i){
   ZC <- Z[,c("agey10", "sex")] 
   
   Csim <- function(u, sigma, betaC, ZC) { -1*log(1-u)*(sigma*365.241)/exp(ZC%*%betaC) }
-  
+  #newchange
   sigmaC <- 13.5 ### 75 -> 7.5% ; 55 -> 10% ;  13.5-> 30%; 6 <- 35%, <10% d'evt au dernier temps;  5 -> ~40% ; 2.5 -> ~50% avec pas assez d'ind à risque à 10 ans 
   betaC <- c(-0.01,-0.3)
   

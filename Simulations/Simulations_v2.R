@@ -3433,7 +3433,7 @@ calc_indic <- function(N){
         ind_estimWG <- get(paste0("indValidWG_",j,"_", k))
         
         rm(list = c(paste0("DATAValid_",j,"_", k), paste0("indValidPLANN_",j,"_", k), paste0("indValidFLEX1.2_",j,"_", k),paste0("indValidFLEX1.4_",j,"_", k),
-                    paste0("indValidFLEX2.2_",j,"_", k), paste0("indValidFLEX2.2_",j,"_", k), paste0("indValidWG_",j,"_", k)))
+                    paste0("indValidFLEX2.2_",j,"_", k), paste0("indValidFLEX2.4_",j,"_", k), paste0("indValidWG_",j,"_", k)))
         
         hold_P <- hold_F1.2 <- hold_F1.4 <- hold_F2.2 <- hold_F2.4 <- hold_WG <- c()
         

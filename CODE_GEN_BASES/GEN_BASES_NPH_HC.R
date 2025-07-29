@@ -180,7 +180,8 @@ simulate_iteration <- function(i){
   
   ## Hommes colon
   dataHC <- data[data$sex ==1 & data$colon == 1,]
-  ZHC <- Z[,-c(4,5)]
+  ZHC <- cbind(dataHC$stage2, dataHC$stage3, dataHC$agey10)
+  colnames(ZHC) <- c("stage2", "stage3", "agey10")
   
   data[data$sex ==1 & data$colon == 1, "timesT"] <- unlist(Tsim(sigma = TsigmaHC, nu = TnuHC, theta = TthetaHC,
                                                                 beta = betaZHC, covariates = ZHC,  
@@ -189,7 +190,8 @@ simulate_iteration <- function(i){
   
   ## Hommes rectum
   dataHR <- data[data$sex ==1 & data$colon == 0,]
-  ZHR <- Z[,-c(4,5)]
+  ZHR <- cbind(dataHR$stage2, dataHR$stage3, dataHR$agey10)
+  colnames(ZHR) <- c("stage2", "stage3", "agey10")
   
   data[data$sex ==1 & data$colon == 0, "timesT"] <- unlist(Tsim(sigma = TsigmaHR, nu = TnuHR, theta = TthetaHR,
                                                                 beta = betaZHR, covariates = ZHR,  
@@ -198,7 +200,8 @@ simulate_iteration <- function(i){
   
   ## Femmes Colon 
   dataFC <- data[data$sex ==2 & data$colon == 1,]
-  ZFC <- Z[,-c(4,5)]
+  ZFC <- cbind(dataFC$stage2, dataFC$stage3, dataFC$agey10) 
+  colnames(ZFC) <- c("stage2", "stage3", "agey10")
   
   data[data$sex == 2 & data$colon == 1, "timesT"] <- unlist(Tsim(sigma = TsigmaFC, nu = TnuFC, theta = TthetaFC,
                                                                  beta = betaZFC, covariates = ZFC,  
@@ -207,8 +210,8 @@ simulate_iteration <- function(i){
   
   ## Femmes Rectum 
   dataFR <- data[data$sex ==2 & data$colon == 0,]
-  ZFR <- Z[,-c(4,5)]
-  
+  ZFR <- cbind(dataFR$stage2, dataFR$stage3, dataFR$agey10)
+  colnames(ZFR) <- c("stage2", "stage3", "agey10")  
   data[data$sex ==2 & data$colon == 0, "timesT"] <- unlist(Tsim(sigma = TsigmaFR, nu = TnuFR, theta = TthetaFR,
                                                                 beta = betaZFR, covariates = ZFR,  
                                                                 ratetable = slopop,
@@ -475,7 +478,8 @@ simulate_iteration <- function(i){
   
   ## Hommes colon
   dataHC <- data[data$sex ==1 & data$colon == 1,]
-  ZHC <- Z[,-c(4,5)]
+  ZHC <- cbind(dataHC$stage2, dataHC$stage3, dataHC$agey10)
+  colnames(ZHC) <- c("stage2", "stage3", "agey10")
   
   data[data$sex ==1 & data$colon == 1, "timesT"] <- unlist(Tsim(sigma = TsigmaHC, nu = TnuHC, theta = TthetaHC,
                                                                 beta = betaZHC, covariates = ZHC,  
@@ -484,7 +488,8 @@ simulate_iteration <- function(i){
   
   ## Hommes rectum
   dataHR <- data[data$sex ==1 & data$colon == 0,]
-  ZHR <- Z[,-c(4,5)]
+  ZHR <- cbind(dataHR$stage2, dataHR$stage3, dataHR$agey10)
+  colnames(ZHR) <- c("stage2", "stage3", "agey10")
   
   data[data$sex ==1 & data$colon == 0, "timesT"] <- unlist(Tsim(sigma = TsigmaHR, nu = TnuHR, theta = TthetaHR,
                                                                 beta = betaZHR, covariates = ZHR,  
@@ -493,8 +498,8 @@ simulate_iteration <- function(i){
   
   ## Femmes Colon 
   dataFC <- data[data$sex ==2 & data$colon == 1,]
-  ZFC <- Z[,-c(4,5)]
-  
+  ZFC <- cbind(dataFC$stage2, dataFC$stage3, dataFC$agey10) 
+  colnames(ZFC) <- c("stage2", "stage3", "agey10")  
   data[data$sex == 2 & data$colon == 1, "timesT"] <- unlist(Tsim(sigma = TsigmaFC, nu = TnuFC, theta = TthetaFC,
                                                                  beta = betaZFC, covariates = ZFC,  
                                                                  ratetable = slopop,
@@ -502,7 +507,8 @@ simulate_iteration <- function(i){
   
   ## Femmes Rectum 
   dataFR <- data[data$sex ==2 & data$colon == 0,]
-  ZFR <- Z[,-c(4,5)]
+  ZFR <- cbind(dataFR$stage2, dataFR$stage3, dataFR$agey10)
+  colnames(ZFR) <- c("stage2", "stage3", "agey10")  
   
   data[data$sex ==2 & data$colon == 0, "timesT"] <- unlist(Tsim(sigma = TsigmaFR, nu = TnuFR, theta = TthetaFR,
                                                                 beta = betaZFR, covariates = ZFR,  
@@ -771,7 +777,8 @@ simulate_iteration <- function(i){
   
   ## Hommes colon
   dataHC <- data[data$sex ==1 & data$colon == 1,]
-  ZHC <- Z[,-c(4,5)]
+  ZHC <- cbind(dataHC$stage2, dataHC$stage3, dataHC$agey10)
+  colnames(ZHC) <- c("stage2", "stage3", "agey10")
   
   data[data$sex ==1 & data$colon == 1, "timesT"] <- unlist(Tsim(sigma = TsigmaHC, nu = TnuHC, theta = TthetaHC,
                                                                 beta = betaZHC, covariates = ZHC,  
@@ -780,7 +787,8 @@ simulate_iteration <- function(i){
   
   ## Hommes rectum
   dataHR <- data[data$sex ==1 & data$colon == 0,]
-  ZHR <- Z[,-c(4,5)]
+  ZHR <- cbind(dataHR$stage2, dataHR$stage3, dataHR$agey10)
+  colnames(ZHR) <- c("stage2", "stage3", "agey10")
   
   data[data$sex ==1 & data$colon == 0, "timesT"] <- unlist(Tsim(sigma = TsigmaHR, nu = TnuHR, theta = TthetaHR,
                                                                 beta = betaZHR, covariates = ZHR,  
@@ -789,7 +797,8 @@ simulate_iteration <- function(i){
   
   ## Femmes Colon 
   dataFC <- data[data$sex ==2 & data$colon == 1,]
-  ZFC <- Z[,-c(4,5)]
+  ZFC <- cbind(dataFC$stage2, dataFC$stage3, dataFC$agey10)
+  colnames(ZFC) <- c("stage2", "stage3", "agey10")
   
   data[data$sex == 2 & data$colon == 1, "timesT"] <- unlist(Tsim(sigma = TsigmaFC, nu = TnuFC, theta = TthetaFC,
                                                                  beta = betaZFC, covariates = ZFC,  
@@ -798,7 +807,8 @@ simulate_iteration <- function(i){
   
   ## Femmes Rectum 
   dataFR <- data[data$sex ==2 & data$colon == 0,]
-  ZFR <- Z[,-c(4,5)]
+  ZFR <- cbind(dataFR$stage2, dataFR$stage3, dataFR$agey10)
+  colnames(ZFR) <- c("stage2", "stage3", "agey10")
   
   data[data$sex ==2 & data$colon == 0, "timesT"] <- unlist(Tsim(sigma = TsigmaFR, nu = TnuFR, theta = TthetaFR,
                                                                 beta = betaZFR, covariates = ZFR,  

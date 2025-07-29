@@ -18,6 +18,8 @@ for(N in c(1000,3000,5000)){
   path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/NPH/Output simulations_N",N,"_NPH_HC/")
   print(file.exists(path0))
 }
+rm(path0)
+rm(N)
 #################################################################################################
 #################################################################################################
 #################################################################################################
@@ -78,9 +80,6 @@ simulate_iteration <- function(i, N){
   set.seed(i)
     
   start <- Sys.time()
-  
-  path0 <<- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/NPH/Output Simulations_N",N,"_NPH_HC/")
-  path1 <<- "~/Documents/Rstudio/Simulations/BASES/"
   
   data <- read.csv(file = paste0(path1,"ind",N,"NPH_HC/",i,"_df",N,".csv"), sep = ";")
   Tsigma <- 12.6 
@@ -440,16 +439,16 @@ simulate_iteration <- function(i, N){
   
   WG.model_HC <- survivalNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + 
                                ratetable(age, year, sexchara), data = data_train_HC,
-                             ratetable=slopop, dist = "genweibull")
+                             ratetable=slopop, dist = "weibull")
   WG.model_HR <- survivalNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + 
                                ratetable(age, year, sexchara), data = data_train_HR,
-                             ratetable=slopop, dist = "genweibull")
+                             ratetable=slopop, dist = "weibull")
   WG.model_FC <- survivalNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + 
                                ratetable(age, year, sexchara), data = data_train_FC,
-                             ratetable=slopop, dist = "genweibull")
+                             ratetable=slopop, dist = "weibull")
   WG.model_FR <- survivalNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 +
                                ratetable(age, year, sexchara), data = data_train_FR,
-                             ratetable=slopop, dist = "genweibull")
+                             ratetable=slopop, dist = "weibull")
   
   
   logcoeffWGHC <- WG.model_HC$coefficients
@@ -3559,6 +3558,10 @@ calc_indic <- function(N){
 
 iterations <- 1:1000
 
+N = 1000
+path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/NPH/Output Simulations_N",N,"_NPH_HC/")
+path1 <- "~/Documents/Rstudio/Simulations/BASES/"
+
 mclapply(iterations, simulate_iteration, N = 1000, mc.cores = detectCores() - 14)
 
 max_attempts <- 3
@@ -3618,6 +3621,10 @@ rm(list = setdiff(ls(envir = .GlobalEnv),
 
 iterations <- 1:1000
 
+N = 3000
+path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/NPH/Output Simulations_N",N,"_NPH_HC/")
+path1 <- "~/Documents/Rstudio/Simulations/BASES/"
+
 mclapply(iterations, simulate_iteration, N = 3000, mc.cores = detectCores() - 14)
 
 max_attempts <- 3
@@ -3676,6 +3683,10 @@ rm(list = setdiff(ls(envir = .GlobalEnv),
 ####################################################################################################
 
 iterations <- 1:1000
+
+N = 5000
+path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/NPH/Output Simulations_N",N,"_NPH_HC/")
+path1 <- "~/Documents/Rstudio/Simulations/BASES/"
 
 mclapply(iterations, simulate_iteration, N = 5000, mc.cores = detectCores() - 14)
 

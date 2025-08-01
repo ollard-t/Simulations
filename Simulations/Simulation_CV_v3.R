@@ -430,7 +430,7 @@ simulate_iteration <- function(i, N){
   
   #flex2  
   
-  m2.2 <- tune.flex$optimal$m
+  m2.2 <- tune.flex2$optimal$m
   
   
   ##################

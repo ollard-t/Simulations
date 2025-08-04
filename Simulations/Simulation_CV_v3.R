@@ -15,9 +15,12 @@
 ###Vérification que tous les dossiers de sauvegarde existent 
 file.exists("~/Documents/Rstudio/Simulations/BASES/")
 for(N in c(1000,3000,5000)){
-  path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/NPH/Output simulations_N",N,"_NPH_HC/")
+  path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/RésultatsCV/N",N,"_results/NPH/Output simulations_N",N,"_NPH_HC/")
   print(file.exists(path0))
 }
+rm(path0)
+rm(N)
+print("PENSER À VÉRIFIER LE S MAJUSUCLE DE SIMULATIONS, DE RAJOUTER LE DOSSIER RESULTATSCV")
 #################################################################################################
 #################################################################################################
 #################################################################################################
@@ -409,7 +412,7 @@ simulate_iteration <- function(i, N){
   # decay <- 0.01
   # maxit <- 1000
   # MaxNWts <- 10000
-  
+
   ##### PLANN
   
   inter <- tune.plann$optimal$inter
@@ -874,7 +877,7 @@ simulate_iteration <- function(i, N){
   
   ############# temps écoulé total & par CV de chaque modèle et taille de la base #########################
   
-  timeComputation <- as.data.frame(c(time = time, plann = TimeCVplann, N = dim(data)[1]))
+  timeComputation <- as.data.frame(c(time = time, plann = TimeCVplann, flex1 = TimeCVflex, flex2 = TimeCVflex2, N = dim(data)[1]))
   
   write.table(timeComputation,  paste0(path0, "TIME/",i,"_time.csv"))
   
@@ -908,9 +911,9 @@ simulate_iteration <- function(i, N){
   
   hP_valid <- c()
   
-  for(i in 1:dim(data_valid)[1] ){
-    hP_valid <- c(hP_valid, expectedhaz(slopop, age=data_valid[i, "age"], sex=data_valid[i, "sex"],
-                                        year=data_valid[i, "year"], time=time_valid[i]) )
+  for(d in 1:dim(data_valid)[1] ){
+    hP_valid <- c(hP_valid, expectedhaz(slopop, age=data_valid[d, "age"], sex=data_valid[d, "sex"],
+                                        year=data_valid[d, "year"], time=time_valid[d]) )
   }
   ### plann
   
@@ -974,9 +977,9 @@ simulate_iteration <- function(i, N){
   
   hP_HC <- c()
   
-  for(i in 1:dim(data_valid_HC)[1] ){
-    hP_HC <- c(hP_HC, expectedhaz(slopop, age=data_valid_HC[i, "age"], sex=data_valid_HC[i, "sex"],
-                                  year=data_valid_HC[i, "year"], time=time_HC[i]) )
+  for(d in 1:dim(data_valid_HC)[1] ){
+    hP_HC <- c(hP_HC, expectedhaz(slopop, age=data_valid_HC[d, "age"], sex=data_valid_HC[d, "sex"],
+                                  year=data_valid_HC[d, "year"], time=time_HC[d]) )
   }
   
   holdHC <- hP_HC+exp(as.matrix(cova_HC)%*%beta_est_HC)*(
@@ -1000,9 +1003,9 @@ simulate_iteration <- function(i, N){
   
   hP_HR <- c()
   
-  for(i in 1:dim(data_valid_HR)[1] ){
-    hP_HR <- c(hP_HR, expectedhaz(slopop, age=data_valid_HR[i, "age"], sex=data_valid_HR[i, "sex"],
-                                  year=data_valid_HR[i, "year"], time=time_HR[i]) )
+  for(d in 1:dim(data_valid_HR)[1] ){
+    hP_HR <- c(hP_HR, expectedhaz(slopop, age=data_valid_HR[d, "age"], sex=data_valid_HR[d, "sex"],
+                                  year=data_valid_HR[d, "year"], time=time_HR[d]) )
   }
   
   holdHR <- hP_HR+exp(as.matrix(cova_HR)%*%beta_est_HR)*(
@@ -1024,9 +1027,9 @@ simulate_iteration <- function(i, N){
   
   hP_FC <- c()
   
-  for(i in 1:dim(data_valid_FC)[1] ){
-    hP_FC <- c(hP_FC, expectedhaz(slopop, age=data_valid_FC[i, "age"], sex=data_valid_FC[i, "sex"],
-                                  year=data_valid_FC[i, "year"], time=time_FC[i]) )
+  for(d in 1:dim(data_valid_FC)[1] ){
+    hP_FC <- c(hP_FC, expectedhaz(slopop, age=data_valid_FC[d, "age"], sex=data_valid_FC[d, "sex"],
+                                  year=data_valid_FC[d, "year"], time=time_FC[d]) )
   }
   
   holdFC <- hP_FC+exp(as.matrix(cova_FC)%*%beta_est_FC)*(
@@ -1048,9 +1051,9 @@ simulate_iteration <- function(i, N){
   
   hP_FR <- c()
   
-  for(i in 1:dim(data_valid_FR)[1] ){
-    hP_FR <- c(hP_FR, expectedhaz(slopop, age=data_valid_FR[i, "age"], sex=data_valid_FR[i, "sex"],
-                                  year=data_valid_FR[i, "year"], time=time_FR[i]) )
+  for(d in 1:dim(data_valid_FR)[1] ){
+    hP_FR <- c(hP_FR, expectedhaz(slopop, age=data_valid_FR[d, "age"], sex=data_valid_FR[d, "sex"],
+                                  year=data_valid_FR[d, "year"], time=time_FR[d]) )
   }
   
   holdFR <- hP_FR+exp(as.matrix(cova_FR)%*%beta_est_FR)*(
@@ -2902,8 +2905,11 @@ calc_indic <- function(N){
   print(Sys.time()-start)
   
   
-  save.image(paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/",length(iterations),"ite_",N,"ind_",date_launch,".Rdata"))
-}## fin funtion calc_ind    
+  
+  # save.image(paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/RésultatsCV/",length(iterations),"ite_",N,"ind_",date_launch,".Rdata"))
+  save(list = ls(), file = paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/RésultatsCV/",length(iterations),"ite_",N,"ind_",date_launch,".Rdata"))
+  
+  }## fin funtion calc_ind    
 calc_indic_PP <- function(N){
   
   strata_names <- c("HC", "HR", "FC", "FR")
@@ -3827,8 +3833,9 @@ calc_indic_PP <- function(N){
     rm(list = paste0("ALL_PPval_",j) )
   }
   
-  save.image(paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/",length(iterations),"ite_",N,"ind_",date_launch,"_PP.Rdata"))
-}## fin funtion calc_ind avec PP   
+  # save.image(paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/RésultatsCV/",length(iterations),"ite_",N,"ind_",date_launch,"_PP.Rdata"))
+  save(list = ls(), file = paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/RésultatsCV/",length(iterations),"ite_",N,"ind_",date_launch,"_PP.Rdata"))
+  }## fin funtion calc_ind avec PP   
 ####################################################################################################
 #                                             1000
 ####################################################################################################
@@ -3836,7 +3843,7 @@ calc_indic_PP <- function(N){
 iterations <- 1:1000
 
 N = 1000
-path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/NPH/Output simulations_N",N,"_NPH_HC/")
+path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/RésultatsCV/N",N,"_results/NPH/Output simulations_N",N,"_NPH_HC/")
 path1 <- "~/Documents/Rstudio/Simulations/BASES/"
 
 mclapply(iterations, simulate_iteration, N = 1000, mc.cores = detectCores() - 14)
@@ -3864,13 +3871,13 @@ while (TRUE) {
 
 rm(list = setdiff(ls(envir = .GlobalEnv), 
                   c("path0", "date_launch", "fr.ratetable", "slopop", 
-                    "colrec", "Sn", "simulate_iteration", "calc_indic")), envir = .GlobalEnv) ## cleaning de l'environnement excpeté ce qu iva être réutilisé
+                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP")), envir = .GlobalEnv) ## cleaning de l'environnement excpeté ce qu iva être réutilisé
 ## 1000SiEND
 
 ############################
 
 ## 1000IndSTA
-# path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N1000_results/NPH/Output Simulations_N1000_NPH_HC/"
+# path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/RésultatsCV/N1000_results/NPH/Output Simulations_N1000_NPH_HC/"
 
 indic = c()
 for(i in 1:1000){
@@ -3887,13 +3894,14 @@ if(!is.null(indic)){
 calc_indic(N = 1000)
 
 rm(list = setdiff(ls(envir = .GlobalEnv), 
-                   c("iterations", "path0")), envir = .GlobalEnv)
+                c("path0", "date_launch", "fr.ratetable", "slopop", 
+                  "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP", "iterations")), envir = .GlobalEnv)
 
 calc_indic_PP(N = 1000)
 
 rm(list = setdiff(ls(envir = .GlobalEnv), 
                   c("path0", "date_launch", "fr.ratetable", "slopop", 
-                    "colrec", "Sn", "simulate_iteration", "calc_indic")), envir = .GlobalEnv)
+                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP")), envir = .GlobalEnv)
 ### 1000IndEND
 
 
@@ -3905,7 +3913,7 @@ rm(list = setdiff(ls(envir = .GlobalEnv),
 iterations <- 1:1000
 
 N = 3000
-path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/NPH/Output Simulations_N",N,"_NPH_HC/")
+path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/RésultatsCV/N",N,"_results/NPH/Output Simulations_N",N,"_NPH_HC/")
 path1 <- "~/Documents/Rstudio/Simulations/BASES/"
 
 mclapply(iterations, simulate_iteration, N = 3000, mc.cores = detectCores() - 14)
@@ -3933,13 +3941,13 @@ while (TRUE) {
 
 rm(list = setdiff(ls(envir = .GlobalEnv), 
                   c("path0", "date_launch", "fr.ratetable", "slopop", 
-                    "colrec", "Sn", "simulate_iteration", "calc_indic")), envir = .GlobalEnv) ## cleaning de l'environnement excpeté ce qu iva être réutilisé
+                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP")), envir = .GlobalEnv) ## cleaning de l'environnement excpeté ce qu iva être réutilisé
 ## 3000SiEND
 
 ############################
 
 ## 3000IndSTA
-# path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N3000_results/NPH/Output Simulations_N3000_NPH_HC/"
+# path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/RésultatsCV/N3000_results/NPH/Output Simulations_N3000_NPH_HC/"
 
 indic = c()
 for(i in 1:1000){
@@ -3955,12 +3963,13 @@ if(!is.null(indic)){
 
 calc_indic(N = 3000)
 rm(list = setdiff(ls(envir = .GlobalEnv), 
-                  c("iterations", "path0")), envir = .GlobalEnv)
+                  c("path0", "date_launch", "fr.ratetable", "slopop", 
+                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP", "iterations")), envir = .GlobalEnv)
 
 calc_indic_PP(N = 3000)
 rm(list = setdiff(ls(envir = .GlobalEnv), 
                   c("path0", "date_launch", "fr.ratetable", "slopop", 
-                    "colrec", "Sn", "simulate_iteration", "calc_indic")), envir = .GlobalEnv)
+                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP")), envir = .GlobalEnv)
 ### 3000IndEND
 
 
@@ -3972,7 +3981,7 @@ rm(list = setdiff(ls(envir = .GlobalEnv),
 iterations <- 1:1000
 
 N = 5000
-path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/NPH/Output Simulations_N",N,"_NPH_HC/")
+path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/RésultatsCV/N",N,"_results/NPH/Output Simulations_N",N,"_NPH_HC/")
 path1 <- "~/Documents/Rstudio/Simulations/BASES/"
 
 mclapply(iterations, simulate_iteration, N = 5000, mc.cores = detectCores() - 14)
@@ -4000,13 +4009,13 @@ while (TRUE) {
 
 rm(list = setdiff(ls(envir = .GlobalEnv), 
                   c("path0", "date_launch", "fr.ratetable", "slopop", 
-                    "colrec", "Sn", "simulate_iteration", "calc_indic")), envir = .GlobalEnv) ## cleaning de l'environnement excpeté ce qu iva être réutilisé
+                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP")), envir = .GlobalEnv) ## cleaning de l'environnement excpeté ce qu iva être réutilisé
 ## 5000SiEND
 
 ############################
 
 ## 5000IndSTA
-# path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N5000_results/NPH/Output Simulations_N5000_NPH_HC/"
+# path0 <- "~/Documents/Rstudio/Simulations/Simulations mai 2025/RésultatsCV/N5000_results/NPH/Output Simulations_N5000_NPH_HC/"
 
 indic = c()
 for(i in 1:1000){
@@ -4023,11 +4032,12 @@ if(!is.null(indic)){
 calc_indic(N = 5000)
 
 rm(list = setdiff(ls(envir = .GlobalEnv), 
-                  c("iterations", "path0")), envir = .GlobalEnv)
+                  c("path0", "date_launch", "fr.ratetable", "slopop", 
+                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP", "iterations")), envir = .GlobalEnv)
 
 calc_indic_PP(N = 5000)
 
 rm(list = setdiff(ls(envir = .GlobalEnv), 
                   c("path0", "date_launch", "fr.ratetable", "slopop", 
-                    "colrec", "Sn", "simulate_iteration", "calc_indic")), envir = .GlobalEnv)
+                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP")), envir = .GlobalEnv)
 ### 5000IndEND

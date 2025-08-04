@@ -1,0 +1,1515 @@
+# install.packages("~/Documents/GitHub/survivalNET", repos = NULL, type = "source")
+# install.packages("~/Documents/GitHub/survivalPLANN", repos = NULL, type = "source")
+
+# remotes::install_github("ollard-t/survivalPLANN")
+# remotes::install_github("ollard-t/survivalNET")
+
+
+library(survivalNET)
+library(survivalPLANN)
+library(parallel)
+library(doParallel)
+
+#################################################################################################
+#importation des données
+data("fr.ratetable")
+data("slopop")
+data(colrec)
+
+# data management
+
+
+colrec$agey <- colrec$age/365.241
+
+colrec$sexchara <- "male"
+colrec$sexchara[colrec$sex==2] <- "female"
+
+colrec$colon <- 1*(as.character(colrec$site)=="colon")
+
+colrec <- colrec[colrec$stage!=99,] # suppresion des patients avec valeur manquante
+table(colrec$stage)
+
+colrec$stage1 <- 1*(colrec$stage==1)
+colrec$stage2 <- 1*(colrec$stage==2)
+colrec$stage3 <- 1*(colrec$stage==3)
+
+table(colrec$stat)
+
+colrec$agey10 <- colrec$agey/10
+names(colrec)
+
+
+rs0 <- survivalNET(formula = Surv(time, stat) ~ stage2 + stage3 + agey10 + sex + colon + 
+                     ratetable(age, diag, sexchara), data = colrec,
+                   ratetable=slopop, dist="weibull", weights=NULL) 
+
+###################################################################################################
+### Fonctions de survie nette, attendue, observée et de simulation de temps
+###################################################################################################
+
+Sp <- function(time, ratetable, age, sex, year)
+{
+  return(exp(-expectedcumhaz(ratetable, age, year, sex, time, method = "table")))
+}
+
+Sn <- function(time, sigma, nu, theta, beta, covariates)
+{
+  exp((1-(1+(time/(exp(sigma)))^exp(nu))^(1/exp(theta))) * exp(sum(covariates*beta)) )
+}
+
+Sobs <- function(time, sigma, nu, theta, beta, covariates, ratetable, age, sex, year)
+{
+  Sp(time = time, ratetable = ratetable, age = age, year = year, sex = sex) * 
+    Sn(time = time, sigma = sigma, nu = nu, theta = theta, beta = beta, covariates = covariates)
+}
+
+Tsim <- function(sigma, nu, theta, covariates, beta, ratetable, age, sex, year)
+{
+  stimes <- lapply(1:length(age), function(i)
+  {
+    u <- runif(1)
+    time <- try(uniroot(function(x) 1- Sobs(time=x, sigma=sigma, nu=nu, theta=theta, beta=beta, covariates=covariates[i,], 
+                                            ratetable=ratetable, age=age[i], sex=sex[i], year=year[i])-u,
+                        interval = c(.Machine$double.eps, 130000))$root, silent = TRUE) 
+    return(time)
+  } )
+}
+###################################################################################################
+##############
+# simulation#
+#############
+
+simulate_iteration <- function(i){
+  
+  set.seed(i)
+  
+  start <- Sys.time()
+  
+  N <- 1000
+  
+  ###paramètres arrondis
+  Tsigma <- 12.6 
+  Tnu <- -0.5
+  Ttheta <- 0
+  betaZ <- c(0.9,2.7,0.3,-0.1,-0.1)
+  names(betaZ) <- names(rs0$coefficients[1:5])
+  
+  data <- data.frame(sex = 1 + rbinom(N, 1, 0.5))
+  
+  data$sexchara <- "male"
+  data$sexchara[data$sex==2] <- "female"
+  
+  data$sex01 <- (data$sex)-1
+  
+  data$agey <- floor(rnorm(N, mean=65, sd=10))
+  data$agey10 <- data$agey /10
+  data$age <- data$agey*365.241
+  
+  # glm.colon <- glm(colon ~ sex + agey10, data = colrec, family = "binomial")
+  
+  lp1 <- -0.4 + 0.2 * data$sex + 0.07 * data$agey10
+  
+  data$colon <- rbinom(N, 1, prob =  exp(lp1 ) / (1 + exp(lp1)) )
+  
+  # glm.stage1 <- glm(stage1 ~ sex + agey10 + colon, data = colrec, family = "binomial")
+  
+  lp2 <- -1.9 + 0.1 * data$sex + 0.06 * data$agey10 - 0.7 * data$colon
+  
+  data$stage1 <- rbinom(N, 1, prob =  exp(lp2) / (1 + exp(lp2)) )
+  
+  # glm.stage2 <- glm(stage2 ~ sex + agey10 + colon, data = colrec[colrec$stage1==0,], family = "binomial")
+  
+  lp3 <- 0.7 + 0.2 * data$sex + 0.02 * data$agey10 - 0.2 * data$colon
+  
+  data$stage2 <- 0
+  
+  data$stage2[data$stage1==0] <- rbinom(sum(data$stage1==0), 1,
+                                        prob =  exp(lp3[data$stage1==0]) / (1 + exp(lp3[data$stage1==0])) )
+  
+  data$stage3 <- 1 - data$stage1 - data$stage2
+  
+  data$stage <- 1 + 1*(data$stage2==1) + 2*(data$stage3==1)
+  
+  data$year <- as.date(format(sample(seq(
+    as.Date('1994/01/01', origin = "1960-01-01"),
+    as.Date('2000/12/30', origin = "1960-01-01"),
+    by="day"), N, replace = TRUE), "%m/%d/%Y"))
+  
+  Z <- cbind(data$stage2, data$stage3, data$agey10, data$sex, data$colon)
+  colnames(Z) <- c("stage2", "stage3", "agey10", "sex", "colon")
+  
+  data$timesT <- Tsim(sigma = Tsigma, nu = Tnu, theta = Ttheta,
+                      beta = betaZ, covariates = Z,  
+                      ratetable = slopop,
+                      age = data$age, sex = data$sexchara, year = data$year)
+  
+  data$timesT <- as.numeric(data$timesT)
+  
+  #data <- na.omit(data)
+  #N <- dim(data)[1] 
+  ################## génération des temps de censure
+  ZC <- Z[,c("agey10", "sex")] 
+  
+  Csim <- function(u, sigma, betaC, ZC) { -1*log(1-u)*(sigma*365.241)/exp(ZC%*%betaC) }
+  
+  sigmaC <- 50
+  betaC <- c(-0.01,-0.3)
+  
+  data$timesC <- Csim(u = runif(n = N, min=0, max=1), sigma = sigmaC, betaC = betaC, ZC = ZC) 
+  
+  # boxplot(data$timesC ~ data$sex, main = "Censoring Times by Sex")
+  # plot(data$age, data$timesC, main = "Censoring Times vs Age", xlab = "Age", ylab = "Censoring Time")
+  
+  data$times <- pmin(data$timesT, data$timesC)
+  
+  data$status <- 1*(data$timesT <= data$timesC)
+  
+  data$sex.organ <- paste0(data$sexchara, data$colon)
+  
+  ############### validation sample
+  N_train <- N/2 #500
+  data_train = data[1:N_train,]
+  data_valid = data[(N_train+1):dim(data)[1],]
+  
+  ###############################
+  ########## STRATES ############
+  ###############################
+  ### training
+  #################### Hommes ####################
+  
+  data_train_H <- data_train[data_train$sex == 1,]
+  
+  med_age_H <- median(data_train_H$agey)
+  
+  ### jeunes & colon
+  
+  data_train_HJC <- data_train_H[data_train_H$agey >= 18 & data_train_H$agey <= med_age_H,]
+  
+  data_train_HJC <- data_train_HJC[data_train_HJC$colon == 1,]
+  
+  ### vieux & colon
+  
+  data_train_HVC <- data_train_H[data_train_H$agey > med_age_H,]
+  
+  data_train_HVC <- data_train_HVC[data_train_HVC$colon == 1,]
+  
+  ### jeunes & rectum
+  
+  data_train_HJR <- data_train_H[data_train_H$agey >= 18 & data_train_H$agey <= med_age_H,]
+  
+  data_train_HJR <- data_train_HJR[data_train_HJR$colon == 0,]
+  
+  ### vieux & rectum
+  
+  data_train_HVR <- data_train_H[data_train_H$agey > med_age_H,]
+  
+  data_train_HVR <- data_train_HVR[data_train_HVR$colon == 0,]
+  
+  #################### Femmes ####################
+  
+  data_train_F <- data_train[data_train$sex == 2,]
+  
+  med_age_F <- median(data_train_F$agey)
+  
+  ### jeunes & colon
+  
+  data_train_FJC <- data_train_F[data_train_F$agey >= 18 & data_train_F$agey <= med_age_F,]
+  
+  data_train_FJC <- data_train_FJC[data_train_FJC$colon == 1,]
+  
+  ### vieux & colon
+  
+  data_train_FVC <- data_train_F[data_train_F$agey > med_age_F,]
+  
+  data_train_FVC <- data_train_FVC[data_train_FVC$colon == 1,]
+  
+  ### jeunes & rectum
+  
+  data_train_FJR <- data_train_F[data_train_F$agey >= 18 & data_train_F$agey <= med_age_F,]
+  
+  data_train_FJR <- data_train_FJR[data_train_FJR$colon == 0,]
+  
+  ### vieux & rectum
+  
+  data_train_FVR <- data_train_F[data_train_F$agey > med_age_F,]
+  
+  data_train_FVR <- data_train_FVR[data_train_FVR$colon == 0,]
+  
+  ########################################
+  ### validation
+  #################### Hommes ####################
+  
+  data_valid_H <- data_valid[data_valid$sex == 1,]
+  
+  med_age_H <- median(data_valid_H$agey)
+  
+  ### jeunes & colon
+  
+  data_valid_HJC <- data_valid_H[data_valid_H$agey >= 18 & data_valid_H$agey <= med_age_H,]
+  
+  data_valid_HJC <- data_valid_HJC[data_valid_HJC$colon == 1,]
+  
+  ### vieux & colon
+  
+  data_valid_HVC <- data_valid_H[data_valid_H$agey > med_age_H,]
+  
+  data_valid_HVC <- data_valid_HVC[data_valid_HVC$colon == 1,]
+  
+  ### jeunes & rectum
+  
+  data_valid_HJR <- data_valid_H[data_valid_H$agey >= 18 & data_valid_H$agey <= med_age_H,]
+  
+  data_valid_HJR <- data_valid_HJR[data_valid_HJR$colon == 0,]
+  
+  ### vieux & rectum
+  
+  data_valid_HVR <- data_valid_H[data_valid_H$agey > med_age_H,]
+  
+  data_valid_HVR <- data_valid_HVR[data_valid_HVR$colon == 0,]
+  
+  #################### Femmes ####################
+  
+  data_valid_F <- data_valid[data_valid$sex == 2,]
+  
+  med_age_F <- median(data_valid_F$agey)
+  
+  ### jeunes & colon
+  
+  data_valid_FJC <- data_valid_F[data_valid_F$agey >= 18 & data_valid_F$agey <= med_age_F,]
+  
+  data_valid_FJC <- data_valid_FJC[data_valid_FJC$colon == 1,]
+  
+  ### vieux & colon
+  
+  data_valid_FVC <- data_valid_F[data_valid_F$agey > med_age_F,]
+  
+  data_valid_FVC <- data_valid_FVC[data_valid_FVC$colon == 1,]
+  
+  ### jeunes & rectum
+  
+  data_valid_FJR <- data_valid_F[data_valid_F$agey >= 18 & data_valid_F$agey <= med_age_F,]
+  
+  data_valid_FJR <- data_valid_FJR[data_valid_FJR$colon == 0,]
+  
+  ### vieux & rectum
+  
+  data_valid_FVR <- data_valid_F[data_valid_F$agey > med_age_F,]
+  
+  data_valid_FVR <- data_valid_FVR[data_valid_FVR$colon == 0,]
+  
+  ########################################
+  
+  
+  ######################valeurs issues du modèle theorique
+  
+  pro.time <- max(data_train$times[data_train$status==1])
+  
+  ###temps d'évaluations (t =1, 3, 5, 10 ans)
+  
+  newtimes <- c(365.241, 365.241*3, 365.241*5, 365.241*10) 
+  # @THOMAS : 80% 50% 20% sujets à risque 
+  
+  Zdata_train <- cbind(data_train$stage2, data_train$stage3, data_train$agey10, data_train$sex, data_train$colon)
+  
+  theopred <- t(sapply(1:dim(Zdata_train)[1], FUN = function(i){
+    Sn(time = newtimes, sigma = Tsigma, nu = Tnu, theta = Ttheta, beta = betaZ, covariates = Zdata_train[i,]) } ) )
+  
+  colnames(theopred) <- newtimes
+  
+  mean.theo <- apply(theopred, FUN="mean", MARGIN=2)
+  
+  ####### sur la base de validation
+  
+  Zdata_val <- cbind(data_valid$stage2, data_valid$stage3, data_valid$agey10, data_valid$sex, data_valid$colon)
+  
+  theopredval <- t(sapply(1:dim(Zdata_val)[1], FUN = function(i){
+    Sn(time = newtimes, sigma = Tsigma, nu = Tnu, theta = Ttheta, beta = betaZ,  covariates = Zdata_val[i,]) } ) )
+  
+  colnames(theopredval) <- newtimes
+  
+  mean.theoval <- apply(theopredval, FUN="mean", MARGIN=2) 
+  
+  #######################################################
+  ###### choix des hyper-paramètres par cross-validation
+  #######################################################
+  
+  
+  # 
+  # ## Modèle PLANN
+  # # 
+  
+  startCVplann <- Sys.time()
+  
+  tune.plann <- cvPLANN(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + sex01 + colon, pro.time = pro.time,
+                        data = data_train, cv = 10, inter= 365.241/12, size=c(2, 4, 8, 10),
+                        decay=c(0.01, 0.1), maxit=1000, MaxNWts=10000)
+  
+  TimeCVplann <- Sys.time() - startCVplann
+  
+  #### Modèle flexible PH
+  
+  startCVflex1 <- Sys.time()
+  
+  tune.flex1 <- cvFLEXNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + sex01 + colon +
+                            ratetable(age, year, sexchara), pro.time = pro.time, data = data_train,
+                          ratetable=slopop, cv = 10, m = c(1,2,3,4))
+  
+  TimeCVflex1 <- Sys.time() - startCVflex1
+  
+  #### Modèle flexible NPH
+  
+  
+  startCVflex2 <- Sys.time()
+  
+  tune.flex2 <- tryCatch({
+    
+    init_list <- list(rep(0,15),rep(0,19),rep(0,23), c(0.008, 0.008, 0.007, -3.8, 0.98, 0.018, 
+                                                       -0.01, -0.018, 0, -3.76, 1.43, 0.026, 
+                                                       -0.02, -0.017, 0, -4.013, 1.011, 0.020, 
+                                                       -0.01, -0.02, 0, -3.85, 1.14, 0.025, 
+                                                       -0.023, -0.009,  0))
+    
+    cvFLEXNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + strata(sex.organ) +
+                ratetable(age, year, sexchara), pro.time = pro.time, data = data_train,
+              ratetable=slopop, cv = 10, m = c(1,2,3,4), init = init_list, delta_th = 0.01)
+    
+  }, error = function(e){paste("Error in tune.flex2:", e$message)})
+  
+  TimeCVflex2 <- Sys.time() - startCVflex2
+  
+  # 
+  # ####################
+  # #paramètres optimaux
+  # ####################
+  # 
+  # ##### FLEXNET
+  # 
+  m1 <- tune.flex1$optimal$m
+  
+  if ("optimal" %in% names(tune.flex2)){
+    m2 <- tune.flex2$optimal$m
+    failedCVindic <- NULL
+  }else{
+    m2 <- 2
+    failedCVindic <- paste0("(default value : ", tune.flex2," )")
+  }
+  
+  ##### PLANN
+  
+  inter <- tune.plann$optimal$inter
+  
+  size <- tune.plann$optimal$size
+  
+  decay <- tune.plann$optimal$decay
+  
+  maxit <- tune.plann$optimal$maxit
+  
+  MaxNWts <- tune.plann$optimal$MaxNWts
+  
+  ##################
+  # Modèles fittés
+  ##################
+  # 
+  # m1 <- 3
+  # m2 <- 1
+  # inter <- 365.241/12
+  # size <- 4
+  # decay <- 0.01
+  # maxit <- 1000
+  # MaxNWts <- 10000
+  
+  ### plann
+  
+  plann.model <- sPLANN(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + sex01 + colon,
+                         pro.time = pro.time, data = data_train, inter= inter, size=size, 
+                         decay=decay, maxit=maxit, MaxNWts=MaxNWts,
+                         ratetable=slopop)
+  
+  ### flex
+  
+  flex.model1 <- survivalFLEXNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + sex01 + colon +
+                                   ratetable(age, year, sexchara), data = data_train,
+                                 ratetable=slopop, m = m1)
+  
+  
+  flex.model2 <- tryCatch({
+    
+    survivalFLEXNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + strata(sex.organ) +
+                      ratetable(age, year, sexchara), data = data_train,
+                    ratetable=slopop, m = m2)
+    
+  }, error = function(e){paste("Error in survivalFLEXNET :", e$message)})
+  ### Weibull Généralisé 
+  
+  WG.model <- survivalNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + sex01 + colon +
+                            ratetable(age, year, sexchara), data = data_train,
+                          ratetable=slopop, dist = "genweibull")
+  
+  
+  ##############
+  #predictions #
+  ##############
+  
+  #bases entières (entraînement et validation)
+  ##################################################################################################
+  ########### BASE DE TRAIN
+  ###plann
+  
+  plannpred <- predictRS(plann.model, data = data_train, newtimes = newtimes, ratetable=slopop, 
+                         age = "age", year = "year", sex = "sexchara")
+  
+  mean.plann <- plannpred$mpredictions$net_survival #@THOMAS ET YOHANN REVOIR CETTE LIGNE APRES LES MISES A JOUR
+  
+  ###flexnet
+  
+  ### modèle PH
+  
+  flexpred1 <- predict(flex.model1, newtimes = newtimes)$predictions
+  
+  mean.flex1 <- apply(flexpred1, FUN="mean", MARGIN=2)
+  
+  #### modèle NPH
+  
+  if(class(flex.model2) == "survivalNET"){
+    
+    flexpred2 <- predict(flex.model2, newtimes = newtimes)$predictions
+    
+    mean.flex2 <- apply(flexpred2, FUN="mean", MARGIN=2)
+    
+  }else{
+    
+    flexpred2 <- paste0(" Error : flex.model2 doesn't exist.")
+    
+    mean.flex2 <- paste0(" Error : flex.model2 doesn't exist.")}
+  
+  ### genweibull
+  
+  WGpred <- predict(WG.model, newtimes = newtimes)$predictions
+  
+  mean.WG <- apply(WGpred, FUN="mean", MARGIN=2)
+  
+  ###### par strates ######
+  
+  
+   ###plann
+  
+   ## hommes ####
+  
+  ###jeune et colon
+  
+  plannpred_HJC <- predictRS(plann.model, data = data_train_HJC, newtimes = newtimes, ratetable=slopop, 
+                         age = "age", year = "year", sex = "sexchara")
+  
+  mean.plann_HJC <- plannpred_HJC$mpredictions$net_survival #@THOMAS ET YOHANN REVOIR CETTE LIGNE APRES LES MISES A JOUR
+  
+  ###vieux et colon
+  
+  plannpred_HVC <- predictRS(plann.model, data = data_train_HVC, newtimes = newtimes, ratetable=slopop, 
+                             age = "age", year = "year", sex = "sexchara")
+  
+  mean.plann_HVC <- plannpred_HVC$mpredictions$net_survival #@THOMAS ET YOHANN REVOIR CETTE LIGNE APRES LES MISES A JOUR
+  
+  ###jeune et rectum
+  
+  plannpred_HJR <- predictRS(plann.model, data = data_train_HJR, newtimes = newtimes, ratetable=slopop, 
+                             age = "age", year = "year", sex = "sexchara")
+  
+  mean.plann_HJR <- plannpred_HJR$mpredictions$net_survival #@THOMAS ET YOHANN REVOIR CETTE LIGNE APRES LES MISES A JOUR
+  
+  ###vieux et rectum
+  
+  plannpred_HVR <- predictRS(plann.model, data = data_train_HVR, newtimes = newtimes, ratetable=slopop, 
+                             age = "age", year = "year", sex = "sexchara")
+  
+  mean.plann_HVR <- plannpred_HVR$mpredictions$net_survival #@THOMAS ET YOHANN REVOIR CETTE LIGNE APRES LES MISES A JOUR
+  
+  ######### femmes
+  
+  ###jeune et colon
+  
+  plannpred_FJC <- predictRS(plann.model, data = data_train_FJC, newtimes = newtimes, ratetable=slopop, 
+                             age = "age", year = "year", sex = "sexchara")
+  
+  mean.plann_FJC <- plannpred_FJC$mpredictions$net_survival #@THOMAS ET YOHANN REVOIR CETTE LIGNE APRES LES MISES A JOUR
+  
+  ###vieux et colon
+  
+  plannpred_FVC <- predictRS(plann.model, data = data_train_FVC, newtimes = newtimes, ratetable=slopop, 
+                             age = "age", year = "year", sex = "sexchara")
+  
+  mean.plann_FVC <- plannpred_FVC$mpredictions$net_survival #@THOMAS ET YOHANN REVOIR CETTE LIGNE APRES LES MISES A JOUR
+  
+  ###jeune et rectum
+  
+  plannpred_FJR <- predictRS(plann.model, data = data_train_FJR, newtimes = newtimes, ratetable=slopop, 
+                             age = "age", year = "year", sex = "sexchara")
+  
+  mean.plann_FJR <- plannpred_FJR$mpredictions$net_survival #@THOMAS ET YOHANN REVOIR CETTE LIGNE APRES LES MISES A JOUR
+  
+  ###vieux et rectum
+  
+  plannpred_FVR <- predictRS(plann.model, data = data_train_FVR, newtimes = newtimes, ratetable=slopop, 
+                             age = "age", year = "year", sex = "sexchara")
+  
+  mean.plann_FVR <- plannpred_FVR$mpredictions$net_survival #@THOMAS ET YOHANN REVOIR CETTE LIGNE APRES LES MISES A JOUR
+  
+  ###flexnet
+  
+  ### modèle PH
+  
+  ### hommmes ###
+  
+  ### jeunes et colon 
+  
+  flexpred1_HJC <- predict(flex.model1, newtimes = newtimes, newdata = data_train_HJC)$predictions
+  
+  mean.flex1_HJC <- apply(flexpred1_HJC, FUN="mean", MARGIN=2)
+  
+  ### vieux et colon 
+  
+  flexpred1_HVC <- predict(flex.model1, newtimes = newtimes, newdata = data_train_HVC)$predictions
+  
+  mean.flex1_HVC <- apply(flexpred1_HVC, FUN="mean", MARGIN=2)
+  
+  ### jeunes et rectum
+  
+  flexpred1_HJR <- predict(flex.model1, newtimes = newtimes, newdata = data_train_HJR)$predictions
+  
+  mean.flex1_HJR <- apply(flexpred1_HJR, FUN="mean", MARGIN=2)
+  
+  ### vieux et rectum
+  
+  flexpred1_HVR <- predict(flex.model1, newtimes = newtimes, newdata = data_train_HVR)$predictions
+  
+  mean.flex1_HVR <- apply(flexpred1_HVR, FUN="mean", MARGIN=2)
+  
+  ### femmes ###
+  
+  ### jeunes et colon 
+  
+  flexpred1_FJC <- predict(flex.model1, newtimes = newtimes, newdata = data_train_FJC)$predictions
+  
+  mean.flex1_FJC <- apply(flexpred1_FJC, FUN="mean", MARGIN=2)
+  
+  ### vieux et colon 
+  
+  flexpred1_FVC <- predict(flex.model1, newtimes = newtimes, newdata = data_train_FVC)$predictions
+  
+  mean.flex1_FVC <- apply(flexpred1_FVC, FUN="mean", MARGIN=2)
+  
+  ### jeunes et rectum
+  
+  flexpred1_FJR <- predict(flex.model1, newtimes = newtimes, newdata = data_train_FJR)$predictions
+  
+  mean.flex1_FJR <- apply(flexpred1_FJR, FUN="mean", MARGIN=2)
+  
+  ### vieux et rectum
+  
+  flexpred1_FVR <- predict(flex.model1, newtimes = newtimes, newdata = data_train_FVR)$predictions
+  
+  mean.flex1_FVR <- apply(flexpred1_FVR, FUN="mean", MARGIN=2)
+  
+  #### modèle NPH
+  
+  #### hommes ####
+  
+  ## jeunes et colon 
+  
+  if(class(flex.model2) == "survivalNET"){
+    
+    flexpred2_HJC <- predict(flex.model2, newtimes = newtimes, newdata = data_train_HJC)$predictions
+    
+    mean.flex2_HJC <- apply(flexpred2_HJC, FUN="mean", MARGIN=2)
+    
+  }else{
+    
+    flexpred2_HJC <- paste0(" Error : flex.model2 doesn't exist.")
+    
+    mean.flex2_HJC <- paste0(" Error : flex.model2 doesn't exist.")}
+  
+  ## vieux et colon 
+  
+  if(class(flex.model2) == "survivalNET"){
+    
+    flexpred2_HVC <- predict(flex.model2, newtimes = newtimes, newdata = data_train_HVC)$predictions
+    
+    mean.flex2_HVC <- apply(flexpred2_HVC, FUN="mean", MARGIN=2)
+    
+  }else{
+    
+    flexpred2_HVC <- paste0(" Error : flex.model2 doesn't exist.")
+    
+    mean.flex2_HVC <- paste0(" Error : flex.model2 doesn't exist.")}
+  
+  ## jeunes et rectum
+  
+  if(class(flex.model2) == "survivalNET"){
+    
+    flexpred2_HJR <- predict(flex.model2, newtimes = newtimes, newdata = data_train_HJR)$predictions
+    
+    mean.flex2_HJR <- apply(flexpred2_HJR, FUN="mean", MARGIN=2)
+    
+  }else{
+    
+    flexpred2_HJR <- paste0(" Error : flex.model2 doesn't exist.")
+    
+    mean.flex2_HJR <- paste0(" Error : flex.model2 doesn't exist.")}
+  
+  ## vieux et rectum
+  
+  if(class(flex.model2) == "survivalNET"){
+    
+    flexpred2_HVR <- predict(flex.model2, newtimes = newtimes, newdata = data_train_HVR)$predictions
+    
+    mean.flex2_HVR <- apply(flexpred2_HVR, FUN="mean", MARGIN=2)
+    
+  }else{
+    
+    flexpred2_HVR <- paste0(" Error : flex.model2 doesn't exist.")
+    
+    mean.flex2_HVR <- paste0(" Error : flex.model2 doesn't exist.")}
+  
+  #### femmes ####
+  
+  ## jeunes et colon 
+  
+  if(class(flex.model2) == "survivalNET"){
+    
+    flexpred2_FJC <- predict(flex.model2, newtimes = newtimes, newdata = data_train_FJC)$predictions
+    
+    mean.flex2_FJC <- apply(flexpred2_FJC, FUN="mean", MARGIN=2)
+    
+  }else{
+    
+    flexpred2_FJC <- paste0(" Error : flex.model2 doesn't exist.")
+    
+    mean.flex2_FJC <- paste0(" Error : flex.model2 doesn't exist.")}
+  
+  ## vieux et colon 
+  
+  if(class(flex.model2) == "survivalNET"){
+    
+    flexpred2_FVC <- predict(flex.model2, newtimes = newtimes, newdata = data_train_FVC)$predictions
+    
+    mean.flex2_FVC <- apply(flexpred2_FVC, FUN="mean", MARGIN=2)
+    
+  }else{
+    
+    flexpred2_FVC <- paste0(" Error : flex.model2 doesn't exist.")
+    
+    mean.flex2_FVC <- paste0(" Error : flex.model2 doesn't exist.")}
+  
+  ## jeunes et rectum
+  
+  if(class(flex.model2) == "survivalNET"){
+    
+    flexpred2_FJR <- predict(flex.model2, newtimes = newtimes, newdata = data_train_FJR)$predictions
+    
+    mean.flex2_FJR <- apply(flexpred2_FJR, FUN="mean", MARGIN=2)
+    
+  }else{
+    
+    flexpred2_FJR <- paste0(" Error : flex.model2 doesn't exist.")
+    
+    mean.flex2_FJR <- paste0(" Error : flex.model2 doesn't exist.")}
+  
+  ## vieux et rectum
+  
+  if(class(flex.model2) == "survivalNET"){
+    
+    flexpred2_FVR <- predict(flex.model2, newtimes = newtimes, newdata = data_train_FVR)$predictions
+    
+    mean.flex2_FVR <- apply(flexpred2_FVR, FUN="mean", MARGIN=2)
+    
+  }else{
+    
+    flexpred2_FVR <- paste0(" Error : flex.model2 doesn't exist.")
+    
+    mean.flex2_FVR <- paste0(" Error : flex.model2 doesn't exist.")}
+  
+  ### genweibull
+  
+  ### hommes 
+  
+  ### jeunes et colon 
+  
+  WGpred_HJC <- predict(WG.model, newtimes = newtimes, newdata = data_train_HJC)$predictions
+  
+  mean.WG_HJC <- apply(WGpred_HJC, FUN="mean", MARGIN=2)
+  
+  ### vieux et colon 
+  
+  WGpred_HVC <- predict(WG.model, newtimes = newtimes, newdata = data_train_HVC)$predictions
+  
+  mean.WG_HVC <- apply(WGpred_HVC, FUN="mean", MARGIN=2)
+  
+  ### jeunes et rectum
+  
+  WGpred_HJR <- predict(WG.model, newtimes = newtimes, newdata = data_train_HJR)$predictions
+  
+  mean.WG_HJR <- apply(WGpred_HJR, FUN="mean", MARGIN=2)
+  
+  ### vieux et rectum
+  
+  WGpred_HVR <- predict(WG.model, newtimes = newtimes, newdata = data_train_HVR)$predictions
+  
+  mean.WG_HVR <- apply(WGpred_HVR, FUN="mean", MARGIN=2)
+  
+  
+  ############################################
+  ########### BASE DE VALIDATION
+  ###plann
+  
+  plannpredval <-  predictRS(plann.model, data = data_valid, newtimes = newtimes, ratetable=slopop, 
+                             age = "age", year = "year", sex = "sexchara")
+  
+  mean.plannval <- plannpredval$mpredictions$net_survival # @ YOHANN et THOMAS : IDEM APRES MISES A JOUR
+  
+  ###flexnet
+  
+  ### modèle PH
+  
+  flexpredval1 <- predict(flex.model1, newtimes = newtimes, newdata = data_valid)$predictions
+  
+  mean.flexval1 <- apply(flexpredval1, FUN="mean", MARGIN=2)
+  
+  #### modèle NPH
+  
+  if(class(flex.model2) == "survivalNET"){
+    
+    flexpredval2 <- predict(flex.model2, newtimes = newtimes, newdata = data_valid)$predictions
+    
+    mean.flexval2 <- apply(flexpredval2, FUN="mean", MARGIN=2)
+    
+  }else{
+    
+    flexpredval2 <- paste0(" Error : flex.model2 doesn't exist.")
+    
+    mean.flexval2 <- paste0(" Error : flex.model2 doesn't exist.")}
+  
+  ### genweibull
+  
+  WGpredval <- predict(WG.model, newtimes = newtimes, newdata = data_valid)$predictions
+  
+  mean.WGval <- apply(WGpredval, FUN="mean", MARGIN=2)
+  
+  ###### par strates ######
+  
+  
+  ###plann
+  
+  ## hommes ####
+  
+  ###jeune et colon
+  
+  plannpredval_HJC <- predictRS(plann.model, data = data_valid_HJC, newtimes = newtimes, ratetable=slopop, 
+                             age = "age", year = "year", sex = "sexchara")
+  
+  mean.plannval_HJC <- plannpredval_HJC$mpredictions$net_survival #@THOMAS ET YOHANN REVOIR CETTE LIGNE APRES LES MISES A JOUR
+  
+  ###vieux et colon
+  
+  plannpredval_HVC <- predictRS(plann.model, data = data_valid_HVC, newtimes = newtimes, ratetable=slopop, 
+                             age = "age", year = "year", sex = "sexchara")
+  
+  mean.plannval_HVC <- plannpredval_HVC$mpredictions$net_survival #@THOMAS ET YOHANN REVOIR CETTE LIGNE APRES LES MISES A JOUR
+  
+  ###jeune et rectum
+  
+  plannpredval_HJR <- predictRS(plann.model, data = data_valid_HJR, newtimes = newtimes, ratetable=slopop, 
+                             age = "age", year = "year", sex = "sexchara")
+  
+  mean.plannval_HJR <- plannpredval_HJR$mpredictions$net_survival #@THOMAS ET YOHANN REVOIR CETTE LIGNE APRES LES MISES A JOUR
+  
+  ###vieux et rectum
+  
+  plannpredval_HVR <- predictRS(plann.model, data = data_valid_HVR, newtimes = newtimes, ratetable=slopop, 
+                             age = "age", year = "year", sex = "sexchara")
+  
+  mean.plannval_HVR <- plannpredval_HVR$mpredictions$net_survival #@THOMAS ET YOHANN REVOIR CETTE LIGNE APRES LES MISES A JOUR
+  
+  ######### femmes
+  
+  ###jeune et colon
+  
+  plannpredval_FJC <- predictRS(plann.model, data = data_valid_FJC, newtimes = newtimes, ratetable=slopop, 
+                             age = "age", year = "year", sex = "sexchara")
+  
+  mean.plannval_FJC <- plannpredval_FJC$mpredictions$net_survival #@THOMAS ET YOHANN REVOIR CETTE LIGNE APRES LES MISES A JOUR
+  
+  ###vieux et colon
+  
+  plannpredval_FVC <- predictRS(plann.model, data = data_valid_FVC, newtimes = newtimes, ratetable=slopop, 
+                             age = "age", year = "year", sex = "sexchara")
+  
+  mean.plannval_FVC <- plannpredval_FVC$mpredictions$net_survival #@THOMAS ET YOHANN REVOIR CETTE LIGNE APRES LES MISES A JOUR
+  
+  ###jeune et rectum
+  
+  plannpredval_FJR <- predictRS(plann.model, data = data_valid_FJR, newtimes = newtimes, ratetable=slopop, 
+                             age = "age", year = "year", sex = "sexchara")
+  
+  mean.plannval_FJR <- plannpredval_FJR$mpredictions$net_survival #@THOMAS ET YOHANN REVOIR CETTE LIGNE APRES LES MISES A JOUR
+  
+  ###vieux et rectum
+  
+  plannpredval_FVR <- predictRS(plann.model, data = data_valid_FVR, newtimes = newtimes, ratetable=slopop, 
+                             age = "age", year = "year", sex = "sexchara")
+  
+  mean.plannval_FVR <- plannpredval_FVR$mpredictions$net_survival #@THOMAS ET YOHANN REVOIR CETTE LIGNE APRES LES MISES A JOUR
+  
+  ###flexnet
+  
+  ### modèle PH
+  
+  ### hommmes ###
+  
+  ### jeunes et colon 
+  
+  flexpredval1_HJC <- predict(flex.model1, newtimes = newtimes, newdata = data_valid_HJC)$predictions
+  
+  mean.flexval1_HJC <- apply(flexpredval1_HJC, FUN="mean", MARGIN=2)
+  
+  ### vieux et colon 
+  
+  flexpredval1_HVC <- predict(flex.model1, newtimes = newtimes, newdata = data_valid_HVC)$predictions
+  
+  mean.flexval1_HVC <- apply(flexpredval1_HVC, FUN="mean", MARGIN=2)
+  
+  ### jeunes et rectum
+  
+  flexpredval1_HJR <- predict(flex.model1, newtimes = newtimes, newdata = data_valid_HJR)$predictions
+  
+  mean.flexval1_HJR <- apply(flexpredval1_HJR, FUN="mean", MARGIN=2)
+  
+  ### vieux et rectum
+  
+  flexpredval1_HVR <- predict(flex.model1, newtimes = newtimes, newdata = data_valid_HVR)$predictions
+  
+  mean.flexval1_HVR <- apply(flexpredval1_HVR, FUN="mean", MARGIN=2)
+  
+  ### femmes ###
+  
+  ### jeunes et colon 
+  
+  flexpredval1_FJC <- predict(flex.model1, newtimes = newtimes, newdata = data_valid_FJC)$predictions
+  
+  mean.flexval1_FJC <- apply(flexpredval1_FJC, FUN="mean", MARGIN=2)
+  
+  ### vieux et colon 
+  
+  flexpredval1_FVC <- predict(flex.model1, newtimes = newtimes, newdata = data_valid_FVC)$predictions
+  
+  mean.flexval1_FVC <- apply(flexpredval1_FVC, FUN="mean", MARGIN=2)
+  
+  ### jeunes et rectum
+  
+  flexpredval1_FJR <- predict(flex.model1, newtimes = newtimes, newdata = data_valid_FJR)$predictions
+  
+  mean.flexval1_FJR <- apply(flexpredval1_FJR, FUN="mean", MARGIN=2)
+  
+  ### vieux et rectum
+  
+  flexpredval1_FVR <- predict(flex.model1, newtimes = newtimes, newdata = data_valid_FVR)$predictions
+  
+  mean.flexval1_FVR <- apply(flexpredval1_FVR, FUN="mean", MARGIN=2)
+  
+  #### modèle NPH
+  
+  #### hommes ####
+  
+  ## jeunes et colon 
+  
+  if(class(flex.model2) == "survivalNET"){
+    
+    flexpredval2_HJC <- predict(flex.model2, newtimes = newtimes, newdata = data_valid_HJC)$predictions
+    
+    mean.flexval2_HJC <- apply(flexpredval2_HJC, FUN="mean", MARGIN=2)
+    
+  }else{
+    
+    flexpredval2_HJC <- paste0(" Error : flex.model2 doesn't exist.")
+    
+    mean.flexval2_HJC <- paste0(" Error : flex.model2 doesn't exist.")}
+  
+  ## vieux et colon 
+  
+  if(class(flex.model2) == "survivalNET"){
+    
+    flexpredval2_HVC <- predict(flex.model2, newtimes = newtimes, newdata = data_valid_HVC)$predictions
+    
+    mean.flexval2_HVC <- apply(flexpredval2_HVC, FUN="mean", MARGIN=2)
+    
+  }else{
+    
+    flexpredval2_HVC <- paste0(" Error : flex.model2 doesn't exist.")
+    
+    mean.flexval2_HVC <- paste0(" Error : flex.model2 doesn't exist.")}
+  
+  ## jeunes et rectum
+  
+  if(class(flex.model2) == "survivalNET"){
+    
+    flexpredval2_HJR <- predict(flex.model2, newtimes = newtimes, newdata = data_valid_HJR)$predictions
+    
+    mean.flexval2_HJR <- apply(flexpredval2_HJR, FUN="mean", MARGIN=2)
+    
+  }else{
+    
+    flexpredval2_HJR <- paste0(" Error : flex.model2_HJR doesn't exist.")
+    
+    mean.flexval2_HJR <- paste0(" Error : flex.model2_HJR doesn't exist.")}
+  
+  ## vieux et rectum
+  
+  if(class(flex.model2) == "survivalNET"){
+    
+    flexpredval2_HVR <- predict(flex.model2, newtimes = newtimes, newdata = data_valid_HVR)$predictions
+    
+    mean.flexval2_HVR <- apply(flexpredval2_HVR, FUN="mean", MARGIN=2)
+    
+  }else{
+    
+    flexpredval2_HVR <- paste0(" Error : flex.model2_HVR doesn't exist.")
+    
+    mean.flexval2_HVR <- paste0(" Error : flex.model2_HVR doesn't exist.")}
+  
+  #### femmes ####
+  
+  ## jeunes et colon 
+  
+  if(class(flex.model2) == "survivalNET"){
+    
+    flexpredval2_FJC <- predict(flex.model2, newtimes = newtimes, newdata = data_valid_FJC)$predictions
+    
+    mean.flexval2_FJC <- apply(flexpredval2_FJC, FUN="mean", MARGIN=2)
+    
+  }else{
+    
+    flexpredval2_FJC <- paste0(" Error : flex.model2_FJC doesn't exist.")
+    
+    mean.flexval2_FJC <- paste0(" Error : flex.model2_FJC doesn't exist.")}
+  
+  ## vieux et colon 
+  
+  if(class(flex.model2) == "survivalNET"){
+    
+    flexpredval2_FVC <- predict(flex.model2, newtimes = newtimes, newdata = data_valid_FVC)$predictions
+    
+    mean.flexval2_FVC <- apply(flexpredval2_FVC, FUN="mean", MARGIN=2)
+    
+  }else{
+    
+    flexpredval2_FVC <- paste0(" Error : flex.model2_FVC doesn't exist.")
+    
+    mean.flexval2_FVC <- paste0(" Error : flex.model2_FVC doesn't exist.")}
+  
+  ## jeunes et rectum
+  
+  if(class(flex.model2) == "survivalNET"){
+    
+    flexpredval2_FJR <- predict(flex.model2, newtimes = newtimes, newdata = data_valid_FJR)$predictions
+    
+    mean.flexval2_FJR <- apply(flexpredval2_FJR, FUN="mean", MARGIN=2)
+    
+  }else{
+    
+    flexpredval2_FJR <- paste0(" Error : flex.model2_FJR doesn't exist.")
+    
+    mean.flexval2_FJR <- paste0(" Error : flex.model2_FJR doesn't exist.")}
+  
+  ## vieux et rectum
+  
+  if(class(flex.model2) == "survivalNET"){
+    
+    flexpredval2_FVR <- predict(flex.model2, newtimes = newtimes, newdata = data_valid_FVR)$predictions
+    
+    mean.flexval2_FVR <- apply(flexpredval2_FVR, FUN="mean", MARGIN=2)
+    
+  }else{
+    
+    flexpredval2_FVR <- paste0(" Error : flex.model2_FVR doesn't exist.")
+    
+    mean.flexval2_FVR <- paste0(" Error : flex.model2_FVR doesn't exist.")}
+  
+  ### genweibull
+  
+  ### hommes 
+  
+  ### jeunes et colon 
+  
+  WGpredval_HJC <- predict(WG.model, newtimes = newtimes, newdata = data_valid_HJC)$predictions
+  
+  mean.WGval_HJC <- apply(WGpredval_HJC, FUN="mean", MARGIN=2)
+  
+  ### vieux et colon 
+  
+  WGpredval_HVC <- predict(WG.model, newtimes = newtimes, newdata = data_valid_HVC)$predictions
+  
+  mean.WGval_HVC <- apply(WGpredval_HVC, FUN="mean", MARGIN=2)
+  
+  ### jeunes et rectum
+  
+  WGpredval_HJR <- predict(WG.model, newtimes = newtimes, newdata = data_valid_HJR)$predictions
+  
+  mean.WGval_HJR <- apply(WGpredval_HJR, FUN="mean", MARGIN=2)
+  
+  ### vieux et rectum
+  
+  WGpredval_HVR <- predict(WG.model, newtimes = newtimes, newdata = data_valid_HVR)$predictions
+  
+  mean.WGval_HVR <- apply(WGpredval_HVR, FUN="mean", MARGIN=2)
+  
+  ### femmes
+  
+  ### jeunes et colon 
+  
+  WGpredval_FJC <- predict(WG.model, newtimes = newtimes, newdata = data_valid_FJC)$predictions
+  
+  mean.WGval_FJC <- apply(WGpredval_FJC, FUN="mean", MARGIN=2)
+  
+  ### vieux et colon 
+  
+  WGpredval_FVC <- predict(WG.model, newtimes = newtimes, newdata = data_valid_FVC)$predictions
+  
+  mean.WGval_FVC <- apply(WGpredval_FVC, FUN="mean", MARGIN=2)
+  
+  ### jeunes et rectum
+  
+  WGpredval_FJR <- predict(WG.model, newtimes = newtimes, newdata = data_valid_FJR)$predictions
+  
+  mean.WGval_FJR <- apply(WGpredval_FJR, FUN="mean", MARGIN=2)
+  
+  ### vieux et rectum
+  
+  WGpredval_FVR <- predict(WG.model, newtimes = newtimes, newdata = data_valid_FVR)$predictions
+  
+  mean.WGval_FVR <- apply(WGpredval_FVR, FUN="mean", MARGIN=2)
+  
+  
+  ##################################################################################################
+  
+  ######
+  #time
+  ######
+  
+  time <- Sys.time()-start
+  
+  ########################
+  #       outputs        #
+  ########################
+  
+  ### path ###
+  
+  # path0 <- "~/Documents/Rstudio/Simulations/Simulations janvier 2025/Output simulations/"
+  path0 <- paste0(getwd(),"/")
+  
+  #####bases####
+  
+  ### TRAIN
+  write.table(data_train,  paste0(path0, "DATAFRAMES/TRAIN/WHOLE/",i,"_dftrain.csv"), sep = ";", row.names = F, col.names = T)
+  ##strates
+  write.table(data_train_HJC,  paste0(path0, "DATAFRAMES/TRAIN/HJC/",i,"_dftrain_HJC.csv"), sep = ";", row.names = F, col.names = T)
+  write.table(data_train_HVC,  paste0(path0, "DATAFRAMES/TRAIN/HVC/",i,"_dftrain_HVC.csv"), sep = ";", row.names = F, col.names = T)
+  write.table(data_train_HJR,  paste0(path0, "DATAFRAMES/TRAIN/HJR/",i,"_dftrain_HJR.csv"), sep = ";", row.names = F, col.names = T)
+  write.table(data_train_HVR,  paste0(path0, "DATAFRAMES/TRAIN/HVR/",i,"_dftrain_HVR.csv"), sep = ";", row.names = F, col.names = T)
+  write.table(data_train_FJC,  paste0(path0, "DATAFRAMES/TRAIN/FJC/",i,"_dftrain_FJC.csv"), sep = ";", row.names = F, col.names = T)
+  write.table(data_train_FVC,  paste0(path0, "DATAFRAMES/TRAIN/FVC/",i,"_dftrain_FVC.csv"), sep = ";", row.names = F, col.names = T)
+  write.table(data_train_FJR,  paste0(path0, "DATAFRAMES/TRAIN/FJR/",i,"_dftrain_FJR.csv"), sep = ";", row.names = F, col.names = T)
+  write.table(data_train_FVR,  paste0(path0, "DATAFRAMES/TRAIN/FVR/",i,"_dftrain_FVR.csv"), sep = ";", row.names = F, col.names = T)
+  
+   ### VALID
+  write.table(data_valid,  paste0(path0, "DATAFRAMES/VALID/WHOLE/",i,"_dfvalid.csv"), sep = ";", row.names = F, col.names = T)
+  ##strates
+  write.table(data_valid_HJC,  paste0(path0, "DATAFRAMES/VALID/HJC/",i,"_dfvalid_HJC.csv"), sep = ";", row.names = F, col.names = T)
+  write.table(data_valid_HVC,  paste0(path0, "DATAFRAMES/VALID/HVC/",i,"_dfvalid_HVC.csv"), sep = ";", row.names = F, col.names = T)
+  write.table(data_valid_HJR,  paste0(path0, "DATAFRAMES/VALID/HJR/",i,"_dfvalid_HJR.csv"), sep = ";", row.names = F, col.names = T)
+  write.table(data_valid_HVR,  paste0(path0, "DATAFRAMES/VALID/HVR/",i,"_dfvalid_HVR.csv"), sep = ";", row.names = F, col.names = T)
+  write.table(data_valid_FJC,  paste0(path0, "DATAFRAMES/VALID/FJC/",i,"_dfvalid_FJC.csv"), sep = ";", row.names = F, col.names = T)
+  write.table(data_valid_FVC,  paste0(path0, "DATAFRAMES/VALID/FVC/",i,"_dfvalid_FVC.csv"), sep = ";", row.names = F, col.names = T)
+  write.table(data_valid_FJR,  paste0(path0, "DATAFRAMES/VALID/FJR/",i,"_dfvalid_FJR.csv"), sep = ";", row.names = F, col.names = T)
+  write.table(data_valid_FVR,  paste0(path0, "DATAFRAMES/VALID/FVR/",i,"_dfvalid_FVR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ############## paramètres estimés par CV ###########
+  
+  m2value <- paste0(m2, failedCVindic)
+  
+  paramsCV <- as.data.frame(c(inter = inter,size = size,decay = decay, maxit = maxit,
+                              MaxNWts = MaxNWts, m1 = m1, m2 = m2value))
+  
+  write.table(paramsCV,  paste0(path0, "PARAM/",i,"_param.csv"))
+  
+  
+  ############# temps écoulé total & par CV de chaque modèle et taille de la base #########################
+  
+  timeComputation <- as.data.frame(c(time = time, plann = TimeCVplann, flex1 = TimeCVflex1,
+                                     flex2 = TimeCVflex2, N = dim(data)[1]))
+  
+  write.table(timeComputation,  paste0(path0, "TIME/",i,"_time.csv"))
+  
+  ##############Log(LIKELIHOOD)####################### 
+  
+  # plann.loglik <- plann.model$loglik  # @YOHANN VERIFIER log.lik dans PLANN// RAJOUTER LA LOGLIK DANS predictRS
+  
+  flex1.loglik <- unname(flex.model1$loglik[1])
+  
+  if(class(flex.model2) == "survivalNET"){
+    flex2.loglik <- unname(flex.model2$loglik[1])
+  }else{ flex2.loglik <- paste0(" Error : flex.model2 doesn't exist.")}
+  WG.loglik <- unname(WG.model$loglik[1])
+  
+  # logliks <- as.data.frame(c(plann = plann.loglik, flex1 = flex1.loglik, flex2 = flex2.loglik, WG = WG.loglik))
+  logliks <- as.data.frame(c(flex1 = flex1.loglik, flex2 = flex2.loglik, WG = WG.loglik))
+  
+  write.table(logliks,  paste0(path0, "LOGLIK/",i,"_loglik.csv"))
+  
+  ##################DATA TRAIN
+  #################################### MOYENNES
+  #######THEO
+  
+  mean_theo <- t(data.frame(THEO = mean.theo))
+  write.table(mean_theo, paste0(path0, "TRAIN/WHOLE/THEO/mean_survival/",i,"_mean_theo.csv"), sep = ";", row.names = F, col.names = T)
+  
+  
+  ######PLANN
+  
+  mean_PLANN <- t(data.frame(PLANN = mean.plann))
+  write.table(mean_PLANN, paste0(path0, "TRAIN/WHOLE/PLANN/mean_survival/",i,"_mean_PLANN.csv"), sep = ";", row.names = F, col.names = T)
+  
+  #######FLEX1
+  
+  mean_flex1 <- t(data.frame(flex1=mean.flex1))
+  write.table(mean_flex1, paste0(path0, "TRAIN/WHOLE/FLEX1/mean_survival/",i,"_mean_flex1.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ######FLEX2
+  
+  mean_flex2 <- t(data.frame(flex2=mean.flex2))
+  write.table(mean_flex2, paste0(path0, "TRAIN/WHOLE/FLEX2/mean_survival/",i,"_mean_flex2.csv"), sep = ";", row.names = F, col.names = T)
+  ######WG
+  
+  mean_flexWG <- t(data.frame(flexWG=mean.WG))
+  write.table(mean_flexWG, paste0(path0, "TRAIN/WHOLE/WG/mean_survival/",i,"_mean_flexWG.csv"), sep = ";",row.names = F, col.names = T)
+  
+  ###strates 
+  
+  #PLANN
+  ##hommes
+  mean_PLANN_HJC <- t(data.frame(PLANN = mean.plann_HJC))
+  write.table(mean_PLANN_HJC, paste0(path0, "TRAIN/HJC/PLANN/mean_survival/",i,"_mean_PLANN_HJC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  mean_PLANN_HVC <- t(data.frame(PLANN = mean.plann_HVC))
+  write.table(mean_PLANN_HVC, paste0(path0, "TRAIN/HVC/PLANN/mean_survival/",i,"_mean_PLANN_HVC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  mean_PLANN_HJR <- t(data.frame(PLANN = mean.plann_HJR))
+  write.table(mean_PLANN_HJR, paste0(path0, "TRAIN/HJR/PLANN/mean_survival/",i,"_mean_PLANN_HJR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  mean_PLANN_HVR <- t(data.frame(PLANN = mean.plann_HVR))
+  write.table(mean_PLANN_HVR, paste0(path0, "TRAIN/HVR/PLANN/mean_survival/",i,"_mean_PLANN_HVR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ##femmes 
+  mean_PLANN_FJC <- t(data.frame(PLANN = mean.plann_FJC))
+  write.table(mean_PLANN_FJC, paste0(path0, "TRAIN/FJC/PLANN/mean_survival/",i,"_mean_PLANN_FJC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  mean_PLANN_FVC <- t(data.frame(PLANN = mean.plann_FVC))
+  write.table(mean_PLANN_FVC, paste0(path0, "TRAIN/FVC/PLANN/mean_survival/",i,"_mean_PLANN_FVC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  mean_PLANN_FJR <- t(data.frame(PLANN = mean.plann_FJR))
+  write.table(mean_PLANN_FJR, paste0(path0, "TRAIN/FJR/PLANN/mean_survival/",i,"_mean_PLANN_FJR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  mean_PLANN_FVR <- t(data.frame(PLANN = mean.plann_FVR))
+  write.table(mean_PLANN_FVR, paste0(path0, "TRAIN/FVR/PLANN/mean_survival/",i,"_mean_PLANN_FVR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  #flex1
+  ##hommes
+  mean_flex1_HJC <- t(data.frame(flex1 = mean.flex1_HJC))
+  write.table(mean_flex1_HJC, paste0(path0, "TRAIN/HJC/FLEX1/mean_survival/",i,"_mean_flex1_HJC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  mean_flex1_HVC <- t(data.frame(flex1 = mean.flex1_HVC))
+  write.table(mean_flex1_HVC, paste0(path0, "TRAIN/HVC/FLEX1/mean_survival/",i,"_mean_flex1_HVC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  mean_flex1_HJR <- t(data.frame(flex1 = mean.flex1_HJR))
+  write.table(mean_flex1_HJR, paste0(path0, "TRAIN/HJR/FLEX1/mean_survival/",i,"_mean_flex1_HJR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  mean_flex1_HVR <- t(data.frame(flex1 = mean.flex1_HVR))
+  write.table(mean_flex1_HVR, paste0(path0, "TRAIN/HVR/FLEX1/mean_survival/",i,"_mean_flex1_HVR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ##femmes 
+  mean_flex1_FJC <- t(data.frame(flex1 = mean.flex1_FJC))
+  write.table(mean_flex1_FJC, paste0(path0, "TRAIN/FJC/FLEX1/mean_survival/",i,"_mean_flex1_FJC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  mean_flex1_FVC <- t(data.frame(flex1 = mean.flex1_FVC))
+  write.table(mean_flex1_FVC, paste0(path0, "TRAIN/FVC/FLEX1/mean_survival/",i,"_mean_flex1_FVC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  mean_flex1_FJR <- t(data.frame(flex1 = mean.flex1_FJR))
+  write.table(mean_flex1_FJR, paste0(path0, "TRAIN/FJR/FLEX1/mean_survival/",i,"_mean_flex1_FJR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  mean_flex1_FVR <- t(data.frame(flex1 = mean.flex1_FVR))
+  write.table(mean_flex1_FVR, paste0(path0, "TRAIN/FVR/FLEX1/mean_survival/",i,"_mean_flex1_FVR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  #flex2
+  ##hommes
+  mean_flex2_HJC <- t(data.frame(flex2 = mean.flex2_HJC))
+  write.table(mean_flex2_HJC, paste0(path0, "TRAIN/HJC/FLEX2/mean_survival/",i,"_mean_flex2_HJC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  mean_flex2_HVC <- t(data.frame(flex2 = mean.flex2_HVC))
+  write.table(mean_flex2_HVC, paste0(path0, "TRAIN/HVC/FLEX2/mean_survival/",i,"_mean_flex2_HVC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  mean_flex2_HJR <- t(data.frame(flex2 = mean.flex2_HJR))
+  write.table(mean_flex2_HJR, paste0(path0, "TRAIN/HJR/FLEX2/mean_survival/",i,"_mean_flex2_HJR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  mean_flex2_HVR <- t(data.frame(flex2 = mean.flex2_HVR))
+  write.table(mean_flex2_HVR, paste0(path0, "TRAIN/HVR/FLEX2/mean_survival/",i,"_mean_flex2_HVR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ##femmes 
+  mean_flex2_FJC <- t(data.frame(flex2 = mean.flex2_FJC))
+  write.table(mean_flex2_FJC, paste0(path0, "TRAIN/FJC/FLEX2/mean_survival/",i,"_mean_flex2_FJC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  mean_flex2_FVC <- t(data.frame(flex2 = mean.flex2_FVC))
+  write.table(mean_flex2_FVC, paste0(path0, "TRAIN/FVC/FLEX2/mean_survival/",i,"_mean_flex2_FVC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  mean_flex2_FJR <- t(data.frame(flex2 = mean.flex2_FJR))
+  write.table(mean_flex2_FJR, paste0(path0, "TRAIN/FJR/FLEX2/mean_survival/",i,"_mean_flex2_FJR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  mean_flex2_FVR <- t(data.frame(flex2 = mean.flex2_FVR))
+  write.table(mean_flex2_FVR, paste0(path0, "TRAIN/FVR/FLEX2/mean_survival/",i,"_mean_flex2_FVR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  #WG
+  ##hommes
+  mean_flexWG_HJC <- t(data.frame(flexWG = mean.flexWG_HJC))
+  write.table(mean_flexWG_HJC, paste0(path0, "TRAIN/HJC/WG/mean_survival/",i,"_mean_flexWG_HJC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  mean_flexWG_HVC <- t(data.frame(flexWG = mean.flexWG_HVC))
+  write.table(mean_flexWG_HVC, paste0(path0, "TRAIN/HVC/WG/mean_survival/",i,"_mean_flexWG_HVC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  mean_flexWG_HJR <- t(data.frame(flexWG = mean.flexWG_HJR))
+  write.table(mean_flexWG_HJR, paste0(path0, "TRAIN/HJR/WG/mean_survival/",i,"_mean_flexWG_HJR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  mean_flexWG_HVR <- t(data.frame(flexWG = mean.flexWG_HVR))
+  write.table(mean_flexWG_HVR, paste0(path0, "TRAIN/HVR/WG/mean_survival/",i,"_mean_flexWG_HVR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ##femmes 
+  mean_flexWG_FJC <- t(data.frame(flexWG = mean.flexWG_FJC))
+  write.table(mean_flexWG_FJC, paste0(path0, "TRAIN/FJC/WG/mean_survival/",i,"_mean_flexWG_FJC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  mean_flexWG_FVC <- t(data.frame(flexWG = mean.flexWG_FVC))
+  write.table(mean_flexWG_FVC, paste0(path0, "TRAIN/FVC/WG/mean_survival/",i,"_mean_flexWG_FVC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  mean_flexWG_FJR <- t(data.frame(flexWG = mean.flexWG_FJR))
+  write.table(mean_flexWG_FJR, paste0(path0, "TRAIN/FJR/WG/mean_survival/",i,"_mean_flexWG_FJR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  mean_flexWG_FVR <- t(data.frame(flexWG = mean.flexWG_FVR))
+  write.table(mean_flexWG_FVR, paste0(path0, "TRAIN/FVR/WG/mean_survival/",i,"_mean_flexWG_FVR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  #################################### SURVIES INDIVIDUELLES
+  
+  #######THEO
+  
+  ind_theo <- data.frame(theopred)
+  write.table(ind_theo, paste0(path0, "TRAIN/WHOLE/THEO/individual_survival/",
+                               i,"_ind_theo.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ######PLANN
+  
+  ind_PLANN <- data.frame(plannpred$ipredictions$net_survival)
+  write.table(ind_PLANN, paste0(path0, "TRAIN/WHOLE/PLANN/individual_survival/",
+                                i,"_ind_PLANN.csv"), sep = ";", row.names = F, col.names = T)
+  
+  #######FLEX1
+  
+  ind_flex1 <- data.frame(flexpred1)
+  write.table(ind_flex1, paste0(path0, "TRAIN/WHOLE/FLEX1/individual_survival/"
+                                ,i,"_ind_flex1.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ######FLEX2
+  
+  ind_flex2 <- data.frame(flexpred2)
+  write.table(ind_flex2, paste0(path0, "TRAIN/WHOLE/FLEX2/individual_survival/"
+                                ,i,"_ind_flex2.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ######WG
+  
+  ind_flexWG <- data.frame(WGpred)
+  write.table(ind_flexWG, paste0(path0, "TRAIN/WHOLE/WG/individual_survival/"
+                                 ,i,"_ind_flexWG.csv"), sep = ";",row.names = F, col.names = T)
+  
+  
+  ###strates ####
+  
+  #PLANN
+  ##hommes
+  ind_PLANN_HJC <- data.frame(plannpred_HJC$ipredictions$net_survival)
+  write.table(ind_PLANN_HJC, paste0(path0, "TRAIN/HJC/PLANN/individual_survival/",i,"_ind_PLANN_HJC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ind_PLANN_HVC <- data.frame(plannpred_HVC$ipredictions$net_survival)
+  write.table(ind_PLANN_HVC, paste0(path0, "TRAIN/HVC/PLANN/individual_survival/",i,"_ind_PLANN_HVC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ind_PLANN_HJR <- data.frame(plannpred_HJR$ipredictions$net_survival)
+  write.table(ind_PLANN_HJR, paste0(path0, "TRAIN/HJR/PLANN/individual_survival/",i,"_ind_PLANN_HJR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ind_PLANN_HVR <- data.frame(plannpred_HVR$ipredictions$net_survival)
+  write.table(ind_PLANN_HVR, paste0(path0, "TRAIN/HVR/PLANN/individual_survival/",i,"_ind_PLANN_HVR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ##femmes 
+  ind_PLANN_FJC <- data.frame(plannpred_FJC$ipredictions$net_survival)
+  write.table(ind_PLANN_FJC, paste0(path0, "TRAIN/FJC/PLANN/individual_survival/",i,"_ind_PLANN_FJC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ind_PLANN_FVC <- data.frame(plannpred_FVC$ipredictions$net_survival)
+  write.table(ind_PLANN_FVC, paste0(path0, "TRAIN/FVC/PLANN/individual_survival/",i,"_ind_PLANN_FVC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ind_PLANN_FJR <- data.frame(plannpred_FJR$ipredictions$net_survival)
+  write.table(ind_PLANN_FJR, paste0(path0, "TRAIN/FJR/PLANN/individual_survival/",i,"_ind_PLANN_FJR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ind_PLANN_FVR <- data.frame(plannpred_FVR$ipredictions$net_survival)
+  write.table(ind_PLANN_FVR, paste0(path0, "TRAIN/FVR/PLANN/individual_survival/",i,"_ind_PLANN_FVR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  #flex1
+  ##hommes
+  ind_flex1_HJC <- data.frame(flexpred1_HJC)
+  write.table(ind_flex1_HJC, paste0(path0, "TRAIN/HJC/FLEX1/individual_survival/",i,"_ind_flex1_HJC.csv"), sep = ";", row.names = F, col.names = T)
+
+  ind_flex1_HVC <- data.frame(flexpred1_HVC)
+  write.table(ind_flex1_HVC, paste0(path0, "TRAIN/HVC/FLEX1/individual_survival/",i,"_ind_flex1_HVC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ind_flex1_HJR <- data.frame(flexpred1_HJR)
+  write.table(ind_flex1_HJR, paste0(path0, "TRAIN/HJR/FLEX1/individual_survival/",i,"_ind_flex1_HJR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ind_flex1_HVR <- data.frame(flexpred1_HVR)
+  write.table(ind_flex1_HVR, paste0(path0, "TRAIN/HVR/FLEX1/individual_survival/",i,"_ind_flex1_HVR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ##femmes 
+  ind_flex1_FJC <- data.frame(flexpred1_FJC)
+  write.table(ind_flex1_FJC, paste0(path0, "TRAIN/FJC/FLEX1/individual_survival/",i,"_ind_flex1_FJC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ind_flex1_FVC <- data.frame(flexpred1_FVC)
+  write.table(ind_flex1_FVC, paste0(path0, "TRAIN/FVC/FLEX1/individual_survival/",i,"_ind_flex1_FVC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ind_flex1_FJR <- data.frame(flexpred1_FJR)
+  write.table(ind_flex1_FJR, paste0(path0, "TRAIN/FJR/FLEX1/individual_survival/",i,"_ind_flex1_FJR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ind_flex1_FVR <- data.frame(flexpred1_FVR)
+  write.table(ind_flex1_FVR, paste0(path0, "TRAIN/FVR/FLEX1/individual_survival/",i,"_ind_flex1_FVR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  #flex2
+  ##hommes
+  ind_flex2_HJC <- data.frame(flexpred2_HJC)
+  write.table(ind_flex2_HJC, paste0(path0, "TRAIN/HJC/FLEX2/individual_survival/",i,"_ind_flex2_HJC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ind_flex2_HVC <- data.frame(flexpred2_HVC)
+  write.table(ind_flex2_HVC, paste0(path0, "TRAIN/HVC/FLEX2/individual_survival/",i,"_ind_flex2_HVC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ind_flex2_HJR <- data.frame(flexpred2_HJR)
+  write.table(ind_flex2_HJR, paste0(path0, "TRAIN/HJR/FLEX2/individual_survival/",i,"_ind_flex2_HJR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ind_flex2_HVR <- data.frame(flexpred2_HVR)
+  write.table(ind_flex2_HVR, paste0(path0, "TRAIN/HVR/FLEX2/individual_survival/",i,"_ind_flex2_HVR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ##femmes 
+  ind_flex2_FJC <- data.frame(flexpred2_FJC)
+  write.table(ind_flex2_FJC, paste0(path0, "TRAIN/FJC/FLEX2/individual_survival/",i,"_ind_flex2_FJC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ind_flex2_FVC <- data.frame(flexpred2_FVC)
+  write.table(ind_flex2_FVC, paste0(path0, "TRAIN/FVC/FLEX2/individual_survival/",i,"_ind_flex2_FVC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ind_flex2_FJR <- data.frame(flexpred2_FJR)
+  write.table(ind_flex2_FJR, paste0(path0, "TRAIN/FJR/FLEX2/individual_survival/",i,"_ind_flex2_FJR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ind_flex2_FVR <- data.frame(flexpred2_FVR)
+  write.table(ind_flex2_FVR, paste0(path0, "TRAIN/FVR/FLEX2/individual_survival/",i,"_ind_flex2_FVR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  #WG
+  ##hommes
+  ind_flexWG_HJC <- data.frame(WGpred_HJC)
+  write.table(ind_flexWG_HJC, paste0(path0, "TRAIN/HJC/WG/individual_survival/",i,"_ind_flexWG_HJC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ind_flexWG_HVC <- data.frame(WGpred_HVC)
+  write.table(ind_flexWG_HVC, paste0(path0, "TRAIN/HVC/WG/individual_survival/",i,"_ind_flexWG_HVC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ind_flexWG_HJR <- data.frame(WGpred_HJR)
+  write.table(ind_flexWG_HJR, paste0(path0, "TRAIN/HJR/WG/individual_survival/",i,"_ind_flexWG_HJR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ind_flexWG_HVR <- data.frame(WGpred_HVR)
+  write.table(ind_flexWG_HVR, paste0(path0, "TRAIN/HVR/WG/individual_survival/",i,"_ind_flexWG_HVR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ##femmes 
+  ind_flexWG_FJC <- data.frame(WGpred_FJC)
+  write.table(ind_flexWG_FJC, paste0(path0, "TRAIN/FJC/WG/individual_survival/",i,"_ind_flexWG_FJC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ind_flexWG_FVC <- data.frame(WGpred_FVC)
+  write.table(ind_flexWG_FVC, paste0(path0, "TRAIN/FVC/WG/individual_survival/",i,"_ind_flexWG_FVC.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ind_flexWG_FJR <- data.frame(WGpred_FJR)
+  write.table(ind_flexWG_FJR, paste0(path0, "TRAIN/FJR/WG/individual_survival/",i,"_ind_flexWG_FJR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ind_flexWG_FVR <- data.frame(WGpred_FVR)
+  write.table(ind_flexWG_FVR, paste0(path0, "TRAIN/FVR/WG/individual_survival/",i,"_ind_flexWG_FVR.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ##################DATA VALID
+  #################################### MOYENNES
+  
+  #######THEO
+  
+  mean_theoval <- t(data.frame(THEO = mean.theoval))
+  write.table(mean_theoval, paste0(path0, "VALID/WHOLE/THEO/mean_survival/",
+                                   i,"_mean_theoval.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ######PLANN
+  
+  mean_PLANNval <- t(data.frame(PLANN = mean.plannval))
+  write.table(mean_PLANNval, paste0(path0, "VALID/WHOLE/PLANN/mean_survival/",
+                                    i,"_mean_PLANNval.csv"), sep = ";", row.names = F, col.names = T)
+  
+  #######FLEX1
+  
+  mean_flexval1 <- t(data.frame(flex1=mean.flexval1))
+  write.table(mean_flexval1, paste0(path0, "VALID/WHOLE/FLEX1/mean_survival/"
+                                    ,i,"_mean_flexval1.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ######FLEX2
+  
+  mean_flexval2 <- t(data.frame(flex2=mean.flexval2))
+  write.table(mean_flexval2, paste0(path0, "VALID/WHOLE/FLEX2/mean_survival/"
+                                    ,i,"_mean_flexval2.csv"), sep = ";", row.names = F, col.names = T)
+  ######WG
+  
+  mean_flexWGval <- t(data.frame(flexWG=mean.WGval))
+  write.table(mean_flexWGval, paste0(path0, "VALID/WHOLE/WG/mean_survival/"
+                                     ,i,"_mean_flexWGval.csv"), sep = ";",row.names = F, col.names = T)
+  
+  #################################### SURVIES INDIVIDUELLES
+  
+  #######THEO
+  ind_theoval <- data.frame(theopredval)
+  write.table(ind_theoval, 
+              paste0(path0, "VALID/WHOLE/THEO/individual_survival/",i
+                     ,"_ind_theoval.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ######PLANN
+  
+  ind_PLANNval <- data.frame(plannpredval$ipredictions$net_survival)
+  write.table(ind_PLANNval, paste0(path0, "VALID/WHOLE/PLANN/individual_survival/",
+                                   i,"_ind_PLANNval.csv"), sep = ";", row.names = F, col.names = T)
+  
+  #######FLEX1
+  
+  ind_flexval1 <- data.frame(flexpredval1)
+  write.table(ind_flexval1, paste0(path0, "VALID/WHOLE/FLEX1/individual_survival/"
+                                   ,i,"_ind_flexval1.csv"), sep = ";", row.names = F, col.names = T)
+  
+  ######FLEX2
+  
+  ind_flexval2 <- data.frame(flexpredval2)
+  write.table(ind_flexval2, paste0(path0, "VALID/WHOLE/FLEX2/individual_survival/"
+                                   ,i,"_ind_flexval2.csv"), sep = ";", row.names = F, col.names = T)
+  ######WG
+  
+  ind_flexWGval <- data.frame(WGpredval)
+  write.table(ind_flexWGval, paste0(path0, "VALID/WHOLE/WG/individual_survival/"
+                                    ,i,"_ind_flexWGval.csv"), sep = ";",row.names = F, col.names = T)
+  
+}#fin itération
+
+
+
+iterations <- 1000
+
+mclapply(1:iterations, simulate_iteration, mc.cores = detectCores() - 6)

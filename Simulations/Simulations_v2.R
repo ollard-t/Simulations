@@ -32,6 +32,8 @@ library(survivalNET)
 library(survivalPLANN)
 library(parallel)
 library(doParallel)
+library(RISCA)
+
 date_launch <- Sys.Date()
 
 ############
@@ -2998,7 +3000,6 @@ calc_indic <- function(N){
     ##     1000ROCSTA
     ################################################### ROC.net ##############################################################
     
-    library(RISCA)
     ##choix de l'espacement des cutoffs 
     # c.off <- seq(0,1, by = 0.2)
     # sort(unique(1-ind_estimP[, l + 1]))

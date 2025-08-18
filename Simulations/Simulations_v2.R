@@ -35,6 +35,8 @@ library(survivalNET)
 library(survivalPLANN)
 library(parallel)
 library(doParallel)
+library(RISCA)
+
 date_launch <- Sys.Date()
 
 ############
@@ -3013,7 +3015,6 @@ calc_indic <- function(N){
     ##     1000ROCSTA
     ################################################### ROC.net ##############################################################
     
-    library(RISCA)
     ##choix de l'espacement des cutoffs 
     # c.off <- seq(0,1, by = 0.2)
     # sort(unique(1-ind_estimP[, l + 1]))
@@ -3057,10 +3058,10 @@ calc_indic <- function(N){
       ind_estimF2.4 <- get(paste0("indTrainFLEX2.4_", k))
       ind_estimWG <- get(paste0("indTrainWG_", k))
       
-      rm(list = c(paste0("DATATrain_",k), paste0("indTrainPLANN_",k),
-                  paste0("indTrainFLEX1.2_",k), paste0("indTrainFLEX1.4_",k),
-                  paste0("indTrainFLEX2.2_",k), paste0("indTrainFLEX2.4_",k),
-                  paste0("indTrainWG_",k)))
+      # rm(list = c(paste0("DATATrain_",k), paste0("indTrainPLANN_",k),
+      #             paste0("indTrainFLEX1.2_",k), paste0("indTrainFLEX1.4_",k),
+      #             paste0("indTrainFLEX2.2_",k), paste0("indTrainFLEX2.4_",k),
+      #             paste0("indTrainWG_",k)))
       
       # Initialiser les vecteurs de résultats
       hold_P <- hold_F1.2 <- hold_F1.4 <- hold_F2.2 <- hold_F2.4 <- hold_WG <- c()
@@ -3329,8 +3330,8 @@ calc_indic <- function(N){
       ind_estimF2.4 <- get(paste0("indValidFLEX2.4_", k))
       ind_estimWG <- get(paste0("indValidWG_",k))
       
-      rm(list = c(paste0("DATAValid_",k), paste0("indValidPLANN_",k),paste0("indValidFLEX1.2_",k), paste0("indValidFLEX1.4_", k),
-                  paste0("indValidFLEX2.2_", k),paste0("indValidFLEX2.4_", k),paste0("indValidWG_",k)))
+      # rm(list = c(paste0("DATAValid_",k), paste0("indValidPLANN_",k),paste0("indValidFLEX1.2_",k), paste0("indValidFLEX1.4_", k),
+      #             paste0("indValidFLEX2.2_", k),paste0("indValidFLEX2.4_", k),paste0("indValidWG_",k)))
       
       # Initialiser les vecteurs de résultats
       hold_P <- hold_F1.2 <- hold_F1.4 <- hold_F2.2 <- hold_F2.4 <- hold_WG <- c()
@@ -3440,8 +3441,8 @@ calc_indic <- function(N){
         ind_estimF2.4 <- get(paste0("indValidFLEX2.4_",j,"_", k))
         ind_estimWG <- get(paste0("indValidWG_",j,"_", k))
         
-        rm(list = c(paste0("DATAValid_",j,"_", k), paste0("indValidPLANN_",j,"_", k), paste0("indValidFLEX1.2_",j,"_", k),paste0("indValidFLEX1.4_",j,"_", k),
-                    paste0("indValidFLEX2.2_",j,"_", k), paste0("indValidFLEX2.4_",j,"_", k), paste0("indValidWG_",j,"_", k)))
+        # rm(list = c(paste0("DATAValid_",j,"_", k), paste0("indValidPLANN_",j,"_", k), paste0("indValidFLEX1.2_",j,"_", k),paste0("indValidFLEX1.4_",j,"_", k),
+        #             paste0("indValidFLEX2.2_",j,"_", k), paste0("indValidFLEX2.4_",j,"_", k), paste0("indValidWG_",j,"_", k)))
         
         hold_P <- hold_F1.2 <- hold_F1.4 <- hold_F2.2 <- hold_F2.4 <- hold_WG <- c()
         

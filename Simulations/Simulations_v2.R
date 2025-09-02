@@ -13,12 +13,9 @@
 ## 1000IndEND : N1000 fin calcul indicateurs
 
 ###Vérification que tous les dossiers de sauvegarde existent 
-cens_val <- "LC"
-PH_val <- "PH"
-
 file.exists("~/Documents/Rstudio/Simulations/BASES/")
 for(N in c(1000,3000,5000)){
-  path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/",PH_val,"/Output simulations_N",N,"_",PH_val,"_",cens_val,"/")
+  path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/NPH/Output simulations_N",N,"_NPH_HC/")
   print(file.exists(path0))
 }
 rm(path0)
@@ -35,8 +32,6 @@ library(survivalNET)
 library(survivalPLANN)
 library(parallel)
 library(doParallel)
-library(RISCA)
-
 date_launch <- Sys.Date()
 
 ############
@@ -86,19 +81,7 @@ simulate_iteration <- function(i, N){
     
   start <- Sys.time()
   
-  folder_suffix <- ""
-  if (PH_val == "PH"  && cens_val == "LC") folder_suffix <- ""
-  if (PH_val == "PH"  && cens_val == "HC") folder_suffix <- "_HC"
-  if (PH_val == "NPH" && cens_val == "LC") folder_suffix <- "NPH"
-  if (PH_val == "NPH" && cens_val == "HC") folder_suffix <- "NPH_HC"
-  
-  file_suffix <- ""
-  if (PH_val == "PH" && cens_val == "HC") file_suffix <- "HC"
-  
-  
-  path_t <- paste0(path1, "ind", N, folder_suffix, "/", i, "_df", N, file_suffix, ".csv")
-  
-  data <- read.csv(path_t, sep = ";")
+  data <- read.csv(file = paste0(path1,"ind",N,"NPH_HC/",i,"_df",N,".csv"), sep = ";")
   Tsigma <- 12.6 
   Tnu <- -0.5
   Ttheta <- 0
@@ -3015,6 +2998,7 @@ calc_indic <- function(N){
     ##     1000ROCSTA
     ################################################### ROC.net ##############################################################
     
+    library(RISCA)
     ##choix de l'espacement des cutoffs 
     # c.off <- seq(0,1, by = 0.2)
     # sort(unique(1-ind_estimP[, l + 1]))
@@ -3058,10 +3042,10 @@ calc_indic <- function(N){
       ind_estimF2.4 <- get(paste0("indTrainFLEX2.4_", k))
       ind_estimWG <- get(paste0("indTrainWG_", k))
       
-      # rm(list = c(paste0("DATATrain_",k), paste0("indTrainPLANN_",k),
-      #             paste0("indTrainFLEX1.2_",k), paste0("indTrainFLEX1.4_",k),
-      #             paste0("indTrainFLEX2.2_",k), paste0("indTrainFLEX2.4_",k),
-      #             paste0("indTrainWG_",k)))
+      rm(list = c(paste0("DATATrain_",k), paste0("indTrainPLANN_",k),
+                  paste0("indTrainFLEX1.2_",k), paste0("indTrainFLEX1.4_",k),
+                  paste0("indTrainFLEX2.2_",k), paste0("indTrainFLEX2.4_",k),
+                  paste0("indTrainWG_",k)))
       
       # Initialiser les vecteurs de résultats
       hold_P <- hold_F1.2 <- hold_F1.4 <- hold_F2.2 <- hold_F2.4 <- hold_WG <- c()
@@ -3330,8 +3314,8 @@ calc_indic <- function(N){
       ind_estimF2.4 <- get(paste0("indValidFLEX2.4_", k))
       ind_estimWG <- get(paste0("indValidWG_",k))
       
-      # rm(list = c(paste0("DATAValid_",k), paste0("indValidPLANN_",k),paste0("indValidFLEX1.2_",k), paste0("indValidFLEX1.4_", k),
-      #             paste0("indValidFLEX2.2_", k),paste0("indValidFLEX2.4_", k),paste0("indValidWG_",k)))
+      rm(list = c(paste0("DATAValid_",k), paste0("indValidPLANN_",k),paste0("indValidFLEX1.2_",k), paste0("indValidFLEX1.4_", k),
+                  paste0("indValidFLEX2.2_", k),paste0("indValidFLEX2.4_", k),paste0("indValidWG_",k)))
       
       # Initialiser les vecteurs de résultats
       hold_P <- hold_F1.2 <- hold_F1.4 <- hold_F2.2 <- hold_F2.4 <- hold_WG <- c()
@@ -3441,8 +3425,8 @@ calc_indic <- function(N){
         ind_estimF2.4 <- get(paste0("indValidFLEX2.4_",j,"_", k))
         ind_estimWG <- get(paste0("indValidWG_",j,"_", k))
         
-        # rm(list = c(paste0("DATAValid_",j,"_", k), paste0("indValidPLANN_",j,"_", k), paste0("indValidFLEX1.2_",j,"_", k),paste0("indValidFLEX1.4_",j,"_", k),
-        #             paste0("indValidFLEX2.2_",j,"_", k), paste0("indValidFLEX2.4_",j,"_", k), paste0("indValidWG_",j,"_", k)))
+        rm(list = c(paste0("DATAValid_",j,"_", k), paste0("indValidPLANN_",j,"_", k), paste0("indValidFLEX1.2_",j,"_", k),paste0("indValidFLEX1.4_",j,"_", k),
+                    paste0("indValidFLEX2.2_",j,"_", k), paste0("indValidFLEX2.4_",j,"_", k), paste0("indValidWG_",j,"_", k)))
         
         hold_P <- hold_F1.2 <- hold_F1.4 <- hold_F2.2 <- hold_F2.4 <- hold_WG <- c()
         
@@ -4779,7 +4763,7 @@ calc_indic_PP <- function(N){
 iterations <- 1:1000
 
 N = 1000
-path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/",PH_val,"/Output simulations_N",N,"_",PH_val,"_",cens_val,"/")
+path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/NPH/Output simulations_N",N,"_NPH_HC/")
 path1 <- "~/Documents/Rstudio/Simulations/BASES/"
 
 mclapply(iterations, simulate_iteration, N = 1000, mc.cores = detectCores() - 14)
@@ -4849,7 +4833,7 @@ rm(list = setdiff(ls(envir = .GlobalEnv),
 iterations <- 1:1000
 
 N = 3000
-path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/",PH_val,"/Output simulations_N",N,"_",PH_val,"_",cens_val,"/")
+path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/NPH/Output simulations_N",N,"_NPH_HC/")
 path1 <- "~/Documents/Rstudio/Simulations/BASES/"
 
 mclapply(iterations, simulate_iteration, N = 3000, mc.cores = detectCores() - 14)
@@ -4919,7 +4903,7 @@ rm(list = setdiff(ls(envir = .GlobalEnv),
 iterations <- 1:1000
 
 N = 5000
-path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/",PH_val,"/Output simulations_N",N,"_",PH_val,"_",cens_val,"/")
+path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/NPH/Output simulations_N",N,"_NPH_HC/")
 path1 <- "~/Documents/Rstudio/Simulations/BASES/"
 
 mclapply(iterations, simulate_iteration, N = 5000, mc.cores = detectCores() - 14)

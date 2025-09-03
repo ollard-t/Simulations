@@ -1515,7 +1515,17 @@ simulate_iteration <- function(i, N){
                 sep = ";",row.names = F, col.names = T)
   }
   ######
-  
+  ##### Enregistrement des modèles 
+  saveRDS(object = plann.model, file = paste0(path0,"MODELS/PLANN/plann.model_", i,".rds"))
+  saveRDS(object = flex.model1.2, file = paste0(path0,"MODELS/FLEX1.2/flex.model1.2_", i,".rds"))
+  saveRDS(object = flex.model1.4, file = paste0(path0,"MODELS/FLEX1.4/flex.model1.4_", i,".rds"))
+  saveRDS(object = flex.model2.2, file = paste0(path0,"MODELS/FLEX2.2/flex.model2.2_", i,".rds"))
+  saveRDS(object = flex.model2.4, file = paste0(path0,"MODELS/FLEX2.4/flex.model2.4_", i,".rds"))
+  #WG
+  saveRDS(object = WG.model_HC, file = paste0(path0,"MODELS/WG/WG.model_HC_", i,".rds"))
+  saveRDS(object = WG.model_HR, file = paste0(path0,"MODELS/WG/WG.model_HR_", i,".rds"))
+  saveRDS(object = WG.model_FC, file = paste0(path0,"MODELS/WG/WG.model_FC_", i,".rds"))
+  saveRDS(object = WG.model_FR, file = paste0(path0,"MODELS/WG/WG.model_FR_", i,".rds"))
 }
 
 ### FIN INDICATEURS ~ligne 3113

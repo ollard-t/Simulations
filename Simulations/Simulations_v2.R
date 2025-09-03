@@ -13,9 +13,12 @@
 ## 1000IndEND : N1000 fin calcul indicateurs
 
 ###Vérification que tous les dossiers de sauvegarde existent 
+cens_val <- "HC"
+PH_val <- "NPH"
+
 file.exists("~/Documents/Rstudio/Simulations/BASES/")
 for(N in c(1000,3000,5000)){
-  path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/NPH/Output simulations_N",N,"_NPH_HC/")
+  path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/",PH_val,"/Output simulations_N",N,"_",PH_val,"_",cens_val,"/")
   print(file.exists(path0))
 }
 rm(path0)
@@ -81,7 +84,20 @@ simulate_iteration <- function(i, N){
     
   start <- Sys.time()
   
-  data <- read.csv(file = paste0(path1,"ind",N,"NPH_HC/",i,"_df",N,".csv"), sep = ";")
+  folder_suffix <- ""
+  if (PH_val == "PH"  && cens_val == "LC") folder_suffix <- ""
+  if (PH_val == "PH"  && cens_val == "HC") folder_suffix <- "_HC"
+  if (PH_val == "NPH" && cens_val == "LC") folder_suffix <- "NPH"
+  if (PH_val == "NPH" && cens_val == "HC") folder_suffix <- "NPH_HC"
+  
+  file_suffix <- ""
+  if (PH_val == "PH" && cens_val == "HC") file_suffix <- "HC"
+  
+  
+  path_t <- paste0(path1, "ind", N, folder_suffix, "/", i, "_df", N, file_suffix, ".csv")
+  
+  data <- read.csv(path_t, sep = ";")
+  
   Tsigma <- 12.6 
   Tnu <- -0.5
   Ttheta <- 0
@@ -534,7 +550,7 @@ simulate_iteration <- function(i, N){
   while (m2.2 >= 0 && !converged) {
     tryCatch({flex.model2.2 <-survivalFLEXNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + strata(sex.organ) +
                                                 ratetable(age, year, sexchara), data = data_train,
-                                              ratetable=slopop, m = m2.2)
+                                              ratetable=slopop, m = m2.2, m_s =0)
     # If the model succeeds, set converged to TRUE and break out of the loop
     converged <- TRUE
     }, error = function(e) {
@@ -1793,6 +1809,18 @@ simulate_iteration <- function(i, N){
                 sep = ";",row.names = F, col.names = T)
   }
   ######
+  
+  ##### Enregistrement des modèles 
+  saveRDS(object = plann.model, file = paste0(path0,"MODELS/PLANN/plann.model_", i,".rds"))
+  saveRDS(object = flex.model1.2, file = paste0(path0,"MODELS/FLEX1.2/flex.model1.2_", i,".rds"))
+  saveRDS(object = flex.model1.4, file = paste0(path0,"MODELS/FLEX1.4/flex.model1.4_", i,".rds"))
+  saveRDS(object = flex.model2.2, file = paste0(path0,"MODELS/FLEX2.2/flex.model2.2_", i,".rds"))
+  saveRDS(object = flex.model2.4, file = paste0(path0,"MODELS/FLEX2.4/flex.model2.4_", i,".rds"))
+  #WG
+  saveRDS(object = WG.model_HC, file = paste0(path0,"MODELS/WG/WG.model_HC_", i,".rds"))
+  saveRDS(object = WG.model_HR, file = paste0(path0,"MODELS/WG/WG.model_HR_", i,".rds"))
+  saveRDS(object = WG.model_FC, file = paste0(path0,"MODELS/WG/WG.model_FC_", i,".rds"))
+  saveRDS(object = WG.model_FR, file = paste0(path0,"MODELS/WG/WG.model_FR_", i,".rds"))
   
 }
 
@@ -4763,7 +4791,7 @@ calc_indic_PP <- function(N){
 iterations <- 1:1000
 
 N = 1000
-path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/NPH/Output simulations_N",N,"_NPH_HC/")
+path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/",PH_val,"/Output simulations_N",N,"_",PH_val,"_",cens_val,"/")
 path1 <- "~/Documents/Rstudio/Simulations/BASES/"
 
 mclapply(iterations, simulate_iteration, N = 1000, mc.cores = detectCores() - 14)
@@ -4833,7 +4861,7 @@ rm(list = setdiff(ls(envir = .GlobalEnv),
 iterations <- 1:1000
 
 N = 3000
-path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/NPH/Output simulations_N",N,"_NPH_HC/")
+path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/",PH_val,"/Output simulations_N",N,"_",PH_val,"_",cens_val,"/")
 path1 <- "~/Documents/Rstudio/Simulations/BASES/"
 
 mclapply(iterations, simulate_iteration, N = 3000, mc.cores = detectCores() - 14)
@@ -4903,7 +4931,7 @@ rm(list = setdiff(ls(envir = .GlobalEnv),
 iterations <- 1:1000
 
 N = 5000
-path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/NPH/Output simulations_N",N,"_NPH_HC/")
+path0 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/",PH_val,"/Output simulations_N",N,"_",PH_val,"_",cens_val,"/")
 path1 <- "~/Documents/Rstudio/Simulations/BASES/"
 
 mclapply(iterations, simulate_iteration, N = 5000, mc.cores = detectCores() - 14)

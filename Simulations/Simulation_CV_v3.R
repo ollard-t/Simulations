@@ -402,7 +402,7 @@ simulate_iteration <- function(i, N){
   
   tune.flex2 <- cvFLEXNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + strata(sex.organ)+
                             ratetable(age, year, sexchara), ratetable=slopop , pro.time = pro.time,
-                          data = data_train, cv = 10, m = c(0,1,2,3))
+                          data = data_train, cv = 10, m = c(0,1,2,3), m_s = c(0,1))
   
   TimeCVflex2 <- Sys.time() - startCVflex2
   
@@ -535,7 +535,7 @@ simulate_iteration <- function(i, N){
   while (m2.2 >= 0 && !converged) {
     tryCatch({flex.model2.2 <-survivalFLEXNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + strata(sex.organ) +
                                                 ratetable(age, year, sexchara), data = data_train,
-                                              ratetable=slopop, m = m2.2)
+                                              ratetable=slopop, m = m2.2, m_s =0)
     # If the model succeeds, set converged to TRUE and break out of the loop
     converged <- TRUE
     }, error = function(e) {

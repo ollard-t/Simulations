@@ -579,7 +579,7 @@ simulate_iteration <- function(i, N){
   while (m2.4 >= 0 && !converged) {
     tryCatch({flex.model2.4 <-survivalFLEXNET(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + strata(sex.organ) +
                                                 ratetable(age, year, sexchara), data = data_train,
-                                              ratetable=slopop, m = m2.4)
+                                              ratetable=slopop, m = m2.4, m_s =0)
     # If the model succeeds, set converged to TRUE and break out of the loop
     converged <- TRUE
     }, error = function(e) {
@@ -1105,9 +1105,12 @@ simulate_iteration <- function(i, N){
   value <- c()
   K <- sort(unique(data_valid$sex.organ))
   cova_valid2 <- cova_valid[,-((dim(cova_valid)[2]-1):dim(cova_valid)[2])]
+  
+  gamma_base2.2 <- gamma_est2.2[1:(flex.model2.2$m+2)]
+  
   for(k in K){
     betak <- beta_est2.2
-    gammak <- gamma_est2.2[(1+(k-1)*(flex.model2.2$m+2)):(flex.model2.2$m+2+(k-1)*(flex.model2.2$m+2))]
+    gammak <- gamma_est2.2[((flex.model2.2$m+2)+1+(k-1)*(flex.model2.2$m_s+2)):((flex.model2.2$m+2)+(k)*(flex.model2.2$m_s+2))]
     idx <- data_valid$sex.organ == k
     
     timek <- time_valid[idx]
@@ -1115,16 +1118,26 @@ simulate_iteration <- function(i, N){
     hPk <- hP_valid[idx]
     covak <- cova_valid2[idx, , drop = FALSE]
     # wk <- w[idx]
+    splk_base <- splinecube(timek, gamma_base2.2, flex.model2.2$m, flex.model2.2$mpos)$spln
+    splkP_base <- splinecubeP(timek, gamma_base2.2, flex.model2.2$m, flex.model2.2$mpos)$spln
     
-    splk <- splinecube(timek, gammak, flex.model2.2$m, flex.model2.2$mpos)$spln
-    splkP <- splinecubeP(timek, gammak, flex.model2.2$m, flex.model2.2$mpos)$spln
-    linpred <- splk + as.matrix(covak) %*% as.matrix(betak)
+    Kref <- flex.model2.2$Kref
     
-    value_strate <- sum((eventk * log(hPk + (1 / timek) * splkP * exp(linpred)) - exp(linpred)))
+    if (k != Kref) {
+      splk  <- splinecube(timek, gammak, flex.model2.2$m_s, flex.model2.2$mpos_s)$spln
+      splkP <- splinecubeP(timek, gammak, flex.model2.2$m_s, flex.model2.2$mpos_s)$spln
+    } else {
+      splk <- 0
+      splkP <- 0
+    }
+    linpred <- splk_base + splk + covak %*% betak
     
-    
-    value <- c(value, value_strate)
-  }
+    value_k <- sum( (
+          eventk * log(hPk + (1/timek) * (splkP_base + splkP) * exp(linpred))) -
+            exp(linpred))
+        
+    value <- c(value, value_k)
+    }
   
   loglikval_2.2 <- sum(value)
   #2.4
@@ -1135,9 +1148,12 @@ simulate_iteration <- function(i, N){
   value <- c()
   K <- sort(unique(data_valid$sex.organ))
   cova_valid2 <- cova_valid[,-((dim(cova_valid)[2]-1):dim(cova_valid)[2])]
+  
+  gamma_base2.4 <- gamma_est2.4[1:(flex.model2.4$m+2)]
+  
   for(k in K){
     betak <- beta_est2.4
-    gammak <- gamma_est2.4[(1+(k-1)*(flex.model2.4$m+2)):(flex.model2.4$m+2+(k-1)*(flex.model2.4$m+2))]
+    gammak <- gamma_est2.4[((flex.model2.4$m+2)+1+(k-1)*(flex.model2.4$m_s+2)):((flex.model2.4$m+2)+(k)*(flex.model2.4$m_s+2))]
     idx <- data_valid$sex.organ == k
     
     timek <- time_valid[idx]
@@ -1145,15 +1161,25 @@ simulate_iteration <- function(i, N){
     hPk <- hP_valid[idx]
     covak <- cova_valid2[idx, , drop = FALSE]
     # wk <- w[idx]
+    splk_base <- splinecube(timek, gamma_base2.4, flex.model2.4$m, flex.model2.4$mpos)$spln
+    splkP_base <- splinecubeP(timek, gamma_base2.4, flex.model2.4$m, flex.model2.4$mpos)$spln
     
-    splk <- splinecube(timek, gammak, flex.model2.4$m, flex.model2.4$mpos)$spln
-    splkP <- splinecubeP(timek, gammak, flex.model2.4$m, flex.model2.4$mpos)$spln
-    linpred <- splk + as.matrix(covak) %*% as.matrix(betak)
+    Kref <- flex.model2.4$Kref
     
-    value_strate <- sum((eventk * log(hPk + (1 / timek) * splkP * exp(linpred)) - exp(linpred)))
+    if (k != Kref) {
+      splk  <- splinecube(timek, gammak, flex.model2.4$m_s, flex.model2.4$mpos_s)$spln
+      splkP <- splinecubeP(timek, gammak, flex.model2.4$m_s, flex.model2.4$mpos_s)$spln
+    } else {
+      splk <- 0
+      splkP <- 0
+    }
+    linpred <- splk_base + splk + covak %*% betak
     
+    value_k <- sum( (
+      eventk * log(hPk + (1/timek) * (splkP_base + splkP) * exp(linpred))) -
+        exp(linpred))
     
-    value <- c(value, value_strate)
+    value <- c(value, value_k)
   }
   
   loglikval_2.4 <- sum(value)

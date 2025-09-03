@@ -394,7 +394,7 @@ simulate_iteration <- function(i, N){
   
   tune.plann <- cvPLANN(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + sex01 + colon, pro.time = pro.time,
                         data = data_train, cv = 10, inter= 365.241/12, size=c(2, 4, 8, 10),
-                        decay=c(0.01, 0.1), maxit=1000, MaxNWts=10000)
+                        decay=c(0.01, 0.1), maxit=1000, MaxNWts=10000, metric = "ibs")
   
   TimeCVplann <- Sys.time() - startCVplann
   

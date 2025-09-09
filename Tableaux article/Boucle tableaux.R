@@ -134,7 +134,15 @@ latex_table <- function(N, strata, file_name, cens_val, PH_val, PP = FALSE){
   }
   colnames(logllval) <- NULL
   
-  whole_log_val <- as.data.frame( t(t(apply(logllval, mean, MARGIN = 1))) )
+  PLANNInfcount <- which(apply(logllval, 2, function(x) any(is.infinite(x))))
+  F2.2count <- which(is.na(logllval[4,]))
+  F2.4count <- which(is.na(logllval[5,]))
+  
+  mat <- as.matrix(logllval)
+  mat[mat == -Inf] <- NA
+  logllval <- as.data.frame(mat)
+  
+  whole_log_val <- as.data.frame( t(t(apply(logllval, mean, na.rm = TRUE, MARGIN = 1))) )
   
   if(PP == FALSE){
     whole_log_val <-rbind(whole_log_val, NA)
@@ -157,8 +165,13 @@ latex_table <- function(N, strata, file_name, cens_val, PH_val, PP = FALSE){
       a <- read.csv(paste0(path3,"DATAFRAMES/TRAIN/",name,"/",i,"_dftrain_",name,".csv"), sep = ";")
       prop <- c(prop, dim(a)[1])
     }
-    print(mean(prop)/(N/2))
+    print(paste0("Taille sous-groupe : ", mean(prop)/(N/2)))
   }
+  print(paste0("Nombre Inf PLANN : ", length(PLANNInfcount),". Détail : ", paste(PLANNInfcount, collapse = ", ")))
+  print(paste0("Nombre NA FLEX2.2 : ", length(F2.2count),". Détail : ", paste(F2.2count, collapse = ", ")))
+  print(paste0("Nombre NA FLEX2.4 : ", length(F2.4count),". Détail : ", paste(F2.4count, collapse = ", ")))
+  
+  
   print(xt, type = "latex", sanitize.rownames.function = identity)
   print(xt_val, type = "latex", sanitize.rownames.function = identity)
 }
@@ -170,7 +183,7 @@ latex_table <- function(N, strata, file_name, cens_val, PH_val, PP = FALSE){
 # 4 = FC
 # 5 = FR
 
-file_name = "984ite_3000ind_2025-08-21"
+file_name = "828ite_1000ind_2025-09-04"
 cens_val = "HC"
 PH_val = "NPH"
       ###############

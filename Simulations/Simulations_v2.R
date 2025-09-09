@@ -1132,9 +1132,15 @@ simulate_iteration <- function(i, N){
     }
     linpred <- splk_base + splk + covak %*% betak
     
+    calc <- hPk + (1/timek) * (splkP_base + splkP) * exp(linpred)
+    
+    # if(any(calc < 0)){
+    #   calc[calc<0] <- 1e-7
+    # }
+    
     value_k <- sum( (
-          eventk * log(hPk + (1/timek) * (splkP_base + splkP) * exp(linpred))) -
-            exp(linpred))
+      eventk * log( calc )) -
+        exp(linpred))
         
     value <- c(value, value_k)
     }
@@ -1175,8 +1181,14 @@ simulate_iteration <- function(i, N){
     }
     linpred <- splk_base + splk + covak %*% betak
     
+    calc <- hPk + (1/timek) * (splkP_base + splkP) * exp(linpred)
+    
+    # if(any(calc < 0)){
+    #   calc[calc<0] <- 1e-7
+    # }
+    
     value_k <- sum( (
-      eventk * log(hPk + (1/timek) * (splkP_base + splkP) * exp(linpred))) -
+      eventk * log( calc )) -
         exp(linpred))
     
     value <- c(value, value_k)
@@ -1836,18 +1848,17 @@ simulate_iteration <- function(i, N){
   }
   ######
   
-  ##### Enregistrement des modèles 
-  saveRDS(object = plann.model, file = paste0(path0,"MODELS/PLANN/plann.model_", i,".rds"))
-  saveRDS(object = flex.model1.2, file = paste0(path0,"MODELS/FLEX1.2/flex.model1.2_", i,".rds"))
-  saveRDS(object = flex.model1.4, file = paste0(path0,"MODELS/FLEX1.4/flex.model1.4_", i,".rds"))
-  saveRDS(object = flex.model2.2, file = paste0(path0,"MODELS/FLEX2.2/flex.model2.2_", i,".rds"))
-  saveRDS(object = flex.model2.4, file = paste0(path0,"MODELS/FLEX2.4/flex.model2.4_", i,".rds"))
-  #WG
-  saveRDS(object = WG.model_HC, file = paste0(path0,"MODELS/WG/WG.model_HC_", i,".rds"))
-  saveRDS(object = WG.model_HR, file = paste0(path0,"MODELS/WG/WG.model_HR_", i,".rds"))
-  saveRDS(object = WG.model_FC, file = paste0(path0,"MODELS/WG/WG.model_FC_", i,".rds"))
-  saveRDS(object = WG.model_FR, file = paste0(path0,"MODELS/WG/WG.model_FR_", i,".rds"))
+  ##### Enregistrement des convergences des modèles
+  convergences <- data.frame(matrix(c(rep(NA,4)), nrow = 4))
+  convergences[1,] <- flex.model1.2$optim_res$convergence
+  convergences[2,] <- flex.model1.4$optim_res$convergence
+  convergences[3,] <- flex.model2.2$optim_res$convergence
+  convergences[4,] <- flex.model2.4$optim_res$convergence
+
+  colnames(convergences)<- "conver_val"
+  rownames(convergences) <- c("FM1.2", "FM1.4", "FM2.2", "FM2.4")
   
+  write.table(convergences, paste0(path0, "/MODELS/conv_",i,".csv"))
 }
 
 ### FIN INDICATEURS ~ligne 3113

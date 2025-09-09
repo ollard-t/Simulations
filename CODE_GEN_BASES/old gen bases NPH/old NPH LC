@@ -4,9 +4,11 @@ library(parallel)
 library(doParallel)
 
 #################################################################################################
+#                                     1000
+#################################################################################################
 ### path ###
 
-path0 <- "~/Documents/Simulations/BASES/ind1000NPH_HC/"
+path0 <- "~/Documents/Simulations/BASES/ind1000NPH/"
 # path0 <- paste0(getwd(),"/")
 ############
 
@@ -43,21 +45,21 @@ colFC <- colrec[colrec$sex == 2 & colrec$colon == 1,]
 colFR <- colrec[colrec$sex == 2 & colrec$colon == 0,]
 
 rsHC <- survivalNET(formula = Surv(time, stat) ~ stage2 + stage3 + agey10 +   
-                      ratetable(age, diag, sexchara), data = colHC,
-                    ratetable=slopop, dist="weibull", weights=NULL) 
+                     ratetable(age, diag, sexchara), data = colHC,
+                   ratetable=slopop, dist="weibull", weights=NULL) 
 
 
 rsHR <- survivalNET(formula = Surv(time, stat) ~ stage2 + stage3 + agey10 + 
-                      ratetable(age, diag, sexchara), data = colHR,
-                    ratetable=slopop, dist="weibull", weights=NULL) 
+                     ratetable(age, diag, sexchara), data = colHR,
+                   ratetable=slopop, dist="weibull", weights=NULL) 
 
 rsFC <- survivalNET(formula = Surv(time, stat) ~ stage2 + stage3 + agey10 + 
-                      ratetable(age, diag, sexchara), data = colFC,
-                    ratetable=slopop, dist="weibull", weights=NULL) 
+                     ratetable(age, diag, sexchara), data = colFC,
+                   ratetable=slopop, dist="weibull", weights=NULL) 
 
 rsFR <- survivalNET(formula = Surv(time, stat) ~ stage2 + stage3 + agey10 +  
-                      ratetable(age, diag, sexchara), data = colFR,
-                    ratetable=slopop, dist="weibull", weights=NULL) 
+                     ratetable(age, diag, sexchara), data = colFR,
+                   ratetable=slopop, dist="weibull", weights=NULL) 
 
 ###################################################################################################
 ### Fonctions de survie nette, attendue, observée et de simulation de temps
@@ -122,7 +124,7 @@ simulate_iteration <- function(i){
   TsigmaFC <- 14 
   TnuFC <- -0.55
   TthetaFC <- 0
-  betaZFC <- c(0.6,2.6,-0.1)
+  betaZFC <- c(0.6,2.6,0.3)
   names(betaZFC) <- names(rsFC$coefficients[1:3])
   
   #### Femmes Rectum
@@ -177,46 +179,45 @@ simulate_iteration <- function(i){
   
   Z <- cbind(data$stage2, data$stage3, data$agey10, data$sex, data$colon)
   colnames(Z) <- c("stage2", "stage3", "agey10", "sex", "colon")
-  
+
   ## Hommes colon
   dataHC <- data[data$sex ==1 & data$colon == 1,]
   ZHC <- cbind(dataHC$stage2, dataHC$stage3, dataHC$agey10)
   colnames(ZHC) <- c("stage2", "stage3", "agey10")
   
   data[data$sex ==1 & data$colon == 1, "timesT"] <- unlist(Tsim(sigma = TsigmaHC, nu = TnuHC, theta = TthetaHC,
-                                                                beta = betaZHC, covariates = ZHC,  
-                                                                ratetable = slopop,
-                                                                age = dataHC$age, sex = dataHC$sexchara, year = dataHC$year))
+          beta = betaZHC, covariates = ZHC,  
+          ratetable = slopop,
+          age = dataHC$age, sex = dataHC$sexchara, year = dataHC$year))
   
   ## Hommes rectum
   dataHR <- data[data$sex ==1 & data$colon == 0,]
   ZHR <- cbind(dataHR$stage2, dataHR$stage3, dataHR$agey10)
-  colnames(ZHR) <- c("stage2", "stage3", "agey10")
-  
+  colnames(ZHR) <- c("stage2", "stage3", "agey10")  
   data[data$sex ==1 & data$colon == 0, "timesT"] <- unlist(Tsim(sigma = TsigmaHR, nu = TnuHR, theta = TthetaHR,
-                                                                beta = betaZHR, covariates = ZHR,  
-                                                                ratetable = slopop,
-                                                                age = dataHR$age, sex = dataHR$sexchara, year = dataHR$year) )
+                                       beta = betaZHR, covariates = ZHR,  
+                                       ratetable = slopop,
+                                       age = dataHR$age, sex = dataHR$sexchara, year = dataHR$year) )
   
   ## Femmes Colon 
   dataFC <- data[data$sex ==2 & data$colon == 1,]
-  ZFC <- cbind(dataFC$stage2, dataFC$stage3, dataFC$agey10) 
+  ZFC <- cbind(dataFC$stage2, dataFC$stage3, dataFC$agey10)
   colnames(ZFC) <- c("stage2", "stage3", "agey10")
   
   data[data$sex == 2 & data$colon == 1, "timesT"] <- unlist(Tsim(sigma = TsigmaFC, nu = TnuFC, theta = TthetaFC,
-                                                                 beta = betaZFC, covariates = ZFC,  
-                                                                 ratetable = slopop,
-                                                                 age = dataFC$age, sex = dataFC$sexchara, year = dataFC$year))
+                                       beta = betaZFC, covariates = ZFC,  
+                                       ratetable = slopop,
+                                       age = dataFC$age, sex = dataFC$sexchara, year = dataFC$year))
   
   ## Femmes Rectum 
   dataFR <- data[data$sex ==2 & data$colon == 0,]
   ZFR <- cbind(dataFR$stage2, dataFR$stage3, dataFR$agey10)
   colnames(ZFR) <- c("stage2", "stage3", "agey10")  
   data[data$sex ==2 & data$colon == 0, "timesT"] <- unlist(Tsim(sigma = TsigmaFR, nu = TnuFR, theta = TthetaFR,
-                                                                beta = betaZFR, covariates = ZFR,  
-                                                                ratetable = slopop,
-                                                                age = dataFR$age, sex = dataFR$sexchara, year = dataFR$year))
-  
+                                         beta = betaZFR, covariates = ZFR,  
+                                         ratetable = slopop,
+                                         age = dataFR$age, sex = dataFR$sexchara, year = dataFR$year))
+    
   
   data$timesT <- as.numeric(data$timesT)
   
@@ -271,8 +272,8 @@ simulate_iteration <- function(i){
   ZC <- Z[,c("agey10", "sex")] 
   
   Csim <- function(u, sigma, betaC, ZC) { -1*log(1-u)*(sigma*365.241)/exp(ZC%*%betaC) }
-  
-  sigmaC <- 13.5 ### 75 -> 7.5% ; 55 -> 10% ;  13.5-> 30%; 6 <- 35%, <10% d'evt au dernier temps;  5 -> ~40% ; 2.5 -> ~50% avec pas assez d'ind à risque à 10 ans 
+  #newchange
+  sigmaC <- 75 ### 75 -> 7.5% ; 55 -> 10% ;  13.5-> 30%; 6 <- 35%, <10% d'evt au dernier temps;  5 -> ~40% ; 2.5 -> ~50% avec pas assez d'ind à risque à 10 ans 
   betaC <- c(-0.01,-0.3)
   
   data$timesC <- Csim(u = runif(n = N, min=0, max=1), sigma = sigmaC, betaC = betaC, ZC = ZC) 
@@ -288,23 +289,22 @@ simulate_iteration <- function(i){
   data$sex.organ <- as.numeric(factor(data$sex.organ, levels = c("male0", "male1", "female0", "female1")))
   
   data$times[data$times < 10e-4] <- 10e-4
-  write.table(data, paste0(path0,i,"_df",N,".csv"), sep = ';', row.names = F, col.names = T)
+  write.table(data, paste0(path0,i,"_df1000.csv"), sep = ';', row.names = F, col.names = T)
 }
 
 
 iterations <- 1:1000
 
-mclapply(iterations, simulate_iteration, mc.cores = detectCores() - 10)
+mclapply(iterations, simulate_iteration, mc.cores = detectCores() - 4)
+
 
 
 #################################################################################################
-
-#####################################      3000           #######################################
-
+#                                     3000
 #################################################################################################
 ### path ###
 
-path0 <- "~/Documents/Simulations/BASES/ind3000NPH_HC/"
+path0 <- "~/Documents/Simulations/BASES/ind3000NPH/"
 # path0 <- paste0(getwd(),"/")
 ############
 
@@ -420,7 +420,7 @@ simulate_iteration <- function(i){
   TsigmaFC <- 14 
   TnuFC <- -0.55
   TthetaFC <- 0
-  betaZFC <- c(0.6,2.6,-0.1)
+  betaZFC <- c(0.6,2.6,0.3)
   names(betaZFC) <- names(rsFC$coefficients[1:3])
   
   #### Femmes Rectum
@@ -489,8 +489,7 @@ simulate_iteration <- function(i){
   ## Hommes rectum
   dataHR <- data[data$sex ==1 & data$colon == 0,]
   ZHR <- cbind(dataHR$stage2, dataHR$stage3, dataHR$agey10)
-  colnames(ZHR) <- c("stage2", "stage3", "agey10")
-  
+  colnames(ZHR) <- c("stage2", "stage3", "agey10")  
   data[data$sex ==1 & data$colon == 0, "timesT"] <- unlist(Tsim(sigma = TsigmaHR, nu = TnuHR, theta = TthetaHR,
                                                                 beta = betaZHR, covariates = ZHR,  
                                                                 ratetable = slopop,
@@ -498,8 +497,9 @@ simulate_iteration <- function(i){
   
   ## Femmes Colon 
   dataFC <- data[data$sex ==2 & data$colon == 1,]
-  ZFC <- cbind(dataFC$stage2, dataFC$stage3, dataFC$agey10) 
-  colnames(ZFC) <- c("stage2", "stage3", "agey10")  
+  ZFC <- cbind(dataFC$stage2, dataFC$stage3, dataFC$agey10)
+  colnames(ZFC) <- c("stage2", "stage3", "agey10")
+  
   data[data$sex == 2 & data$colon == 1, "timesT"] <- unlist(Tsim(sigma = TsigmaFC, nu = TnuFC, theta = TthetaFC,
                                                                  beta = betaZFC, covariates = ZFC,  
                                                                  ratetable = slopop,
@@ -509,7 +509,6 @@ simulate_iteration <- function(i){
   dataFR <- data[data$sex ==2 & data$colon == 0,]
   ZFR <- cbind(dataFR$stage2, dataFR$stage3, dataFR$agey10)
   colnames(ZFR) <- c("stage2", "stage3", "agey10")  
-  
   data[data$sex ==2 & data$colon == 0, "timesT"] <- unlist(Tsim(sigma = TsigmaFR, nu = TnuFR, theta = TthetaFR,
                                                                 beta = betaZFR, covariates = ZFR,  
                                                                 ratetable = slopop,
@@ -570,7 +569,7 @@ simulate_iteration <- function(i){
   
   Csim <- function(u, sigma, betaC, ZC) { -1*log(1-u)*(sigma*365.241)/exp(ZC%*%betaC) }
   
-  sigmaC <- 13.5 ### 75 -> 7.5% ; 55 -> 10% ;  13.5-> 30%; 6 <- 35%, <10% d'evt au dernier temps;  5 -> ~40% ; 2.5 -> ~50% avec pas assez d'ind à risque à 10 ans 
+  sigmaC <- 75 ### 75 -> 7.5% ; 55 -> 10% ;  13.5-> 30%; 6 <- 35%, <10% d'evt au dernier temps;  5 -> ~40% ; 2.5 -> ~50% avec pas assez d'ind à risque à 10 ans 
   betaC <- c(-0.01,-0.3)
   
   data$timesC <- Csim(u = runif(n = N, min=0, max=1), sigma = sigmaC, betaC = betaC, ZC = ZC) 
@@ -586,24 +585,21 @@ simulate_iteration <- function(i){
   data$sex.organ <- as.numeric(factor(data$sex.organ, levels = c("male0", "male1", "female0", "female1")))
   
   data$times[data$times < 10e-4] <- 10e-4
-  write.table(data, paste0(path0,i,"_df",N,".csv"), sep = ';', row.names = F, col.names = T)
+  write.table(data, paste0(path0,i,"_df3000.csv"), sep = ';', row.names = F, col.names = T)
 }
 
 
 iterations <- 1:1000
 
-mclapply(iterations, simulate_iteration, mc.cores = detectCores() - 10)
-
+mclapply(iterations, simulate_iteration, mc.cores = detectCores() - 4)
 
 
 #################################################################################################
-
-#####################################      5000           #######################################
-
+#                                     5000
 #################################################################################################
 ### path ###
 
-path0 <- "~/Documents/Simulations/BASES/ind5000NPH_HC/"
+path0 <- "~/Documents/Simulations/BASES/ind5000NPH/"
 # path0 <- paste0(getwd(),"/")
 ############
 
@@ -719,7 +715,7 @@ simulate_iteration <- function(i){
   TsigmaFC <- 14 
   TnuFC <- -0.55
   TthetaFC <- 0
-  betaZFC <- c(0.6,2.6,-0.1)
+  betaZFC <- c(0.6,2.6,0.3)
   names(betaZFC) <- names(rsFC$coefficients[1:3])
   
   #### Femmes Rectum
@@ -788,8 +784,7 @@ simulate_iteration <- function(i){
   ## Hommes rectum
   dataHR <- data[data$sex ==1 & data$colon == 0,]
   ZHR <- cbind(dataHR$stage2, dataHR$stage3, dataHR$agey10)
-  colnames(ZHR) <- c("stage2", "stage3", "agey10")
-  
+  colnames(ZHR) <- c("stage2", "stage3", "agey10")  
   data[data$sex ==1 & data$colon == 0, "timesT"] <- unlist(Tsim(sigma = TsigmaHR, nu = TnuHR, theta = TthetaHR,
                                                                 beta = betaZHR, covariates = ZHR,  
                                                                 ratetable = slopop,
@@ -797,7 +792,7 @@ simulate_iteration <- function(i){
   
   ## Femmes Colon 
   dataFC <- data[data$sex ==2 & data$colon == 1,]
-  ZFC <- cbind(dataFC$stage2, dataFC$stage3, dataFC$agey10)
+  ZFC <- cbind(dataFC$stage2, dataFC$stage3, dataFC$agey10) 
   colnames(ZFC) <- c("stage2", "stage3", "agey10")
   
   data[data$sex == 2 & data$colon == 1, "timesT"] <- unlist(Tsim(sigma = TsigmaFC, nu = TnuFC, theta = TthetaFC,
@@ -808,8 +803,7 @@ simulate_iteration <- function(i){
   ## Femmes Rectum 
   dataFR <- data[data$sex ==2 & data$colon == 0,]
   ZFR <- cbind(dataFR$stage2, dataFR$stage3, dataFR$agey10)
-  colnames(ZFR) <- c("stage2", "stage3", "agey10")
-  
+  colnames(ZFR) <- c("stage2", "stage3", "agey10")  
   data[data$sex ==2 & data$colon == 0, "timesT"] <- unlist(Tsim(sigma = TsigmaFR, nu = TnuFR, theta = TthetaFR,
                                                                 beta = betaZFR, covariates = ZFR,  
                                                                 ratetable = slopop,
@@ -869,8 +863,8 @@ simulate_iteration <- function(i){
   ZC <- Z[,c("agey10", "sex")] 
   
   Csim <- function(u, sigma, betaC, ZC) { -1*log(1-u)*(sigma*365.241)/exp(ZC%*%betaC) }
-  #newchange
-  sigmaC <- 13.5 ### 75 -> 7.5% ; 55 -> 10% ;  13.5-> 30%; 6 <- 35%, <10% d'evt au dernier temps;  5 -> ~40% ; 2.5 -> ~50% avec pas assez d'ind à risque à 10 ans 
+  
+  sigmaC <- 75 ### 75 -> 7.5% ; 55 -> 10% ;  13.5-> 30%; 6 <- 35%, <10% d'evt au dernier temps;  5 -> ~40% ; 2.5 -> ~50% avec pas assez d'ind à risque à 10 ans 
   betaC <- c(-0.01,-0.3)
   
   data$timesC <- Csim(u = runif(n = N, min=0, max=1), sigma = sigmaC, betaC = betaC, ZC = ZC) 
@@ -886,10 +880,10 @@ simulate_iteration <- function(i){
   data$sex.organ <- as.numeric(factor(data$sex.organ, levels = c("male0", "male1", "female0", "female1")))
   
   data$times[data$times < 10e-4] <- 10e-4
-  write.table(data, paste0(path0,i,"_df",N,".csv"), sep = ';', row.names = F, col.names = T)
+  write.table(data, paste0(path0,i,"_df5000.csv"), sep = ';', row.names = F, col.names = T)
 }
 
 
 iterations <- 1:1000
 
-mclapply(iterations, simulate_iteration, mc.cores = detectCores() - 10)
+mclapply(iterations, simulate_iteration, mc.cores = detectCores() - 4)

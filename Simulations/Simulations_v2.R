@@ -393,8 +393,8 @@ simulate_iteration <- function(i, N){
   startCVplann <- Sys.time()
   
   tune.plann <- cvPLANN(formula = Surv(times, status) ~ stage2 + stage3 + agey10 + sex01 + colon, pro.time = pro.time,
-                        data = data_train, cv = 10, inter= 365.241/12, size=c(2, 4, 8, 10),
-                        decay=c(0.01, 0.1), maxit=1000, MaxNWts=10000, metric = "ibs")
+                        data = data_train, cv = 10, inter= 365.241/12, size=c(2, 4, 8, 10, 12),
+                        decay=c(0.01, 0.05, 0.1), maxit=1000, MaxNWts=10000, metric = "ibs")
   
   TimeCVplann <- Sys.time() - startCVplann
   
@@ -1033,6 +1033,7 @@ simulate_iteration <- function(i, N){
   
   ##############Log(LIKELIHOOD)####################### 
   ##TRAIN
+  ##WHOLE
   plann.loglik <- plannpred$loglik  
   
   flex1.2.loglik <- unname(flex.model1.2$loglik[1])
@@ -1050,9 +1051,147 @@ simulate_iteration <- function(i, N){
   
   logliks <- as.data.frame(c(plann = plann.loglik, flex1.2 = flex1.2.loglik,
                              flex1.4 = flex1.4.loglik, flex2.2 = flex2.2.loglik,
-                             flex2.4 = flex2.4.loglik, WG = WG.loglik,
-                             WG_HC = WG_HC.loglik, WG_HR = WG_HR.loglik, 
-                             WG_FC = WG_FC.loglik, WG_FR = WG_FR.loglik ))
+                             flex2.4 = flex2.4.loglik, WG = WG.loglik))
+  ########### STRATAS
+  ind_strat <- 2
+  for(j in strata_names){
+    
+    a <- get(paste0(paste0("data_train_", j)))
+    event_s <- a$status 
+    time_s <- a$times 
+    
+    hP_s <- c()
+    
+    for(d in 1:dim(a)[1] ){
+      hP_s <- c(hP_s, expectedhaz(slopop, age=a[d, "age"], sex=a[d, "sex"],
+                                  year=a[d, "year"], time=time_s[d]) )
+    }
+    ### plann
+    
+    assign("loglik_s_plann", get(paste0("plannpred_",j))$loglik)
+    
+    
+    ### flex 1
+    #1.2
+    beta_est1.2 <- flex1.2.coeff[1:(length(flex1.2.coeff)-(flex.model1.2$m+2))]
+    gamma_est1.2 <- tail(flex1.2.coeff, flex.model1.2$m+2)
+    cova_s <- as.matrix(a[,names(beta_est1.2)])
+    
+    
+    loglik_s_1.2 <- sum( event_s * log(hP_s + (1/time_s)*splinecubeP(time_s, gamma_est1.2, flex.model1.2$m, flex.model1.2$mpos)$spln *
+                                         exp(splinecube(time_s, gamma_est1.2, flex.model1.2$m, flex.model1.2$mpos)$spln + cova_s %*% beta_est1.2) ) -
+                           exp(splinecube(time_s, gamma_est1.2, flex.model1.2$m, flex.model1.2$mpos)$spln 
+                               + cova_s %*% beta_est1.2) )
+    #1.4
+    
+    beta_est1.4 <- flex1.4.coeff[1:(length(flex1.4.coeff)-(flex.model1.4$m+2))]
+    gamma_est1.4 <- tail(flex1.4.coeff, flex.model1.4$m+2)
+    
+    
+    loglik_s_1.4 <- sum( event_s * log(hP_s + (1/time_s)*splinecubeP(time_s, gamma_est1.4, flex.model1.4$m, flex.model1.4$mpos)$spln *
+                                         exp(splinecube(time_s, gamma_est1.4, flex.model1.4$m, flex.model1.4$mpos)$spln + cova_s %*% beta_est1.4) ) -
+                           exp(splinecube(time_s, gamma_est1.4, flex.model1.4$m, flex.model1.4$mpos)$spln 
+                               + cova_s %*% beta_est1.4) )
+    
+    ### flex 2
+    #2.2
+    beta_est2.2 <- unname( flex.model2.2$coefficients[(1:(dim(flex.model2.2$x)[2]) )] ) 
+    gamma_est2.2 <- unname( flex.model2.2$coefficients[((dim(flex.model2.2$x)[2]+1): (length(flex.model2.2$coefficients)))] ) 
+    
+    value <- c()
+    K <- sort(unique(a$sex.organ))
+    cova_s2 <- cova_s[,-((dim(cova_s)[2]-1):dim(cova_s)[2])]
+    
+    gamma_base2.2 <- gamma_est2.2[1:(flex.model2.2$m+2)]
+    
+    for(k in K){
+      betak <- beta_est2.2
+      gammak <- gamma_est2.2[((flex.model2.2$m+2)+1+(k-1)*(flex.model2.2$m_s+2)):((flex.model2.2$m+2)+(k)*(flex.model2.2$m_s+2))]
+      idx <- a$sex.organ == k
+      
+      timek <- time_s[idx]
+      eventk <- event_s[idx]
+      hPk <- hP_s[idx]
+      covak <- cova_s2[idx, , drop = FALSE]
+      # wk <- w[idx]
+      splk_base <- splinecube(timek, gamma_base2.2, flex.model2.2$m, flex.model2.2$mpos)$spln
+      splkP_base <- splinecubeP(timek, gamma_base2.2, flex.model2.2$m, flex.model2.2$mpos)$spln
+      
+      Kref <- flex.model2.2$Kref
+      
+      if (k != Kref) {
+        splk  <- splinecube(timek, gammak, flex.model2.2$m_s, flex.model2.2$mpos_s)$spln
+        splkP <- splinecubeP(timek, gammak, flex.model2.2$m_s, flex.model2.2$mpos_s)$spln
+      } else {
+        splk <- 0
+        splkP <- 0
+      }
+      linpred <- splk_base + splk + covak %*% betak
+      
+      calc <- hPk + (1/timek) * (splkP_base + splkP) * exp(linpred)
+      
+      ##[calc >= 0] pour éviter des NaN quand les parametres estimés sur une autre base pourraient créer un spln < 0 (surtout sur base de validation)
+      value_k <- sum( (
+        eventk[calc >= 0] * log( calc[calc >= 0] )) -
+          exp(linpred[calc >= 0]))
+      
+      value <- c(value, value_k)
+    }
+    
+    loglik_s_2.2 <- sum(value)
+    #2.4
+    
+    beta_est2.4 <- unname( flex.model2.4$coefficients[(1:(dim(flex.model2.4$x)[2]) )] ) 
+    gamma_est2.4 <- unname( flex.model2.4$coefficients[((dim(flex.model2.4$x)[2]+1): (length(flex.model2.4$coefficients)))] ) 
+    
+    value <- c()
+    K <- sort(unique(a$sex.organ))
+    cova_s2 <- cova_s[,-((dim(cova_s)[2]-1):dim(cova_s)[2])]
+    
+    gamma_base2.4 <- gamma_est2.4[1:(flex.model2.4$m+2)]
+    
+    for(k in K){
+      betak <- beta_est2.4
+      gammak <- gamma_est2.4[((flex.model2.4$m+2)+1+(k-1)*(flex.model2.4$m_s+2)):((flex.model2.4$m+2)+(k)*(flex.model2.4$m_s+2))]
+      idx <- a$sex.organ == k
+      
+      timek <- time_s[idx]
+      eventk <- event_s[idx]
+      hPk <- hP_s[idx]
+      covak <- cova_s2[idx, , drop = FALSE]
+      # wk <- w[idx]
+      splk_base <- splinecube(timek, gamma_base2.4, flex.model2.4$m, flex.model2.4$mpos)$spln
+      splkP_base <- splinecubeP(timek, gamma_base2.4, flex.model2.4$m, flex.model2.4$mpos)$spln
+      
+      Kref <- flex.model2.4$Kref
+      
+      if (k != Kref) {
+        splk  <- splinecube(timek, gammak, flex.model2.4$m_s, flex.model2.4$mpos_s)$spln
+        splkP <- splinecubeP(timek, gammak, flex.model2.4$m_s, flex.model2.4$mpos_s)$spln
+      } else {
+        splk <- 0
+        splkP <- 0
+      }
+      linpred <- splk_base + splk + covak %*% betak
+      
+      calc <- hPk + (1/timek) * (splkP_base + splkP) * exp(linpred)
+      
+      ##[calc >= 0] pour éviter des NaN quand les parametres estimés sur une autre base pourraient créer un spln < 0 (surtout sur base de validation)
+      value_k <- sum( (
+        eventk[calc >= 0] * log( calc[calc >= 0] )) -
+          exp(linpred[calc >= 0]))
+      
+      value <- c(value, value_k)
+    }
+    
+    loglik_s_2.4 <- sum(value)
+    
+    logliks[,ind_strat] <- c(loglik_s_plann, loglik_s_1.2, loglik_s_1.4, loglik_s_2.2, loglik_s_2.4, get(paste0("WG_",j,".loglik")) )
+    ind_strat <- ind_strat+1
+    
+  }
+  
+  colnames(logliks) <- c("WHOLE", strata_names)
   
   write.table(logliks,  paste0(path0, "LOGLIK/TRAIN/",i,"_loglik.csv"))
   #############
@@ -1134,13 +1273,10 @@ simulate_iteration <- function(i, N){
     
     calc <- hPk + (1/timek) * (splkP_base + splkP) * exp(linpred)
     
-    # if(any(calc < 0)){
-    #   calc[calc<0] <- 1e-7
-    # }
-    
+    ##[calc >= 0] pour éviter des NaN quand les parametres estimés sur une autre base pourraient créer un spln < 0 (surtout sur base de validation)
     value_k <- sum( (
-      eventk * log( calc )) -
-        exp(linpred))
+      eventk[calc >= 0] * log( calc[calc >= 0] )) -
+        exp(linpred[calc >= 0]))
         
     value <- c(value, value_k)
     }
@@ -1183,13 +1319,10 @@ simulate_iteration <- function(i, N){
     
     calc <- hPk + (1/timek) * (splkP_base + splkP) * exp(linpred)
     
-    # if(any(calc < 0)){
-    #   calc[calc<0] <- 1e-7
-    # }
-    
+    ##[calc >= 0] pour éviter des NaN quand les parametres estimés sur une autre base pourraient créer un spln < 0 (surtout sur base de validation)
     value_k <- sum( (
-      eventk * log( calc )) -
-        exp(linpred))
+      eventk[calc >= 0] * log( calc[calc >= 0] )) -
+        exp(linpred[calc >= 0]))
     
     value <- c(value, value_k)
   }
@@ -1299,9 +1432,147 @@ simulate_iteration <- function(i, N){
   ############ enregistrement
   logliksval <- as.data.frame(c(plann = loglikval_plann, flex1.2 = loglikval_1.2,
                                 flex1.4 = loglikval_1.4, flex2.2 = loglikval_2.2,
-                                flex2.4 = loglikval_2.4, WG = loglikval_WG,
-                                WG_HC = loglikval_WG_HC, WG_HR = loglikval_WG_HR, 
-                                WG_FC = loglikval_WG_FC, WG_FR = loglikval_WG_FR ))
+                                flex2.4 = loglikval_2.4, WG = loglikval_WG))
+  
+  ind_strat <- 2
+  for(j in strata_names){
+    
+    a <- get(paste0(paste0("data_valid_", j)))
+    event_s <- a$status 
+    time_s <- a$times 
+    
+    hP_s <- c()
+    
+    for(d in 1:dim(a)[1] ){
+      hP_s <- c(hP_s, expectedhaz(slopop, age=a[d, "age"], sex=a[d, "sex"],
+                                  year=a[d, "year"], time=time_s[d]) )
+    }
+    ### plann
+    
+    assign("loglikval_s_plann", get(paste0("plannpredval_",j))$loglik)
+    
+    
+    ### flex 1
+    #1.2
+    beta_est1.2 <- flex1.2.coeff[1:(length(flex1.2.coeff)-(flex.model1.2$m+2))]
+    gamma_est1.2 <- tail(flex1.2.coeff, flex.model1.2$m+2)
+    cova_s <- as.matrix(a[,names(beta_est1.2)])
+    
+    
+    loglikval_s_1.2 <- sum( event_s * log(hP_s + (1/time_s)*splinecubeP(time_s, gamma_est1.2, flex.model1.2$m, flex.model1.2$mpos)$spln *
+                                         exp(splinecube(time_s, gamma_est1.2, flex.model1.2$m, flex.model1.2$mpos)$spln + cova_s %*% beta_est1.2) ) -
+                           exp(splinecube(time_s, gamma_est1.2, flex.model1.2$m, flex.model1.2$mpos)$spln 
+                               + cova_s %*% beta_est1.2) )
+    #1.4
+    
+    beta_est1.4 <- flex1.4.coeff[1:(length(flex1.4.coeff)-(flex.model1.4$m+2))]
+    gamma_est1.4 <- tail(flex1.4.coeff, flex.model1.4$m+2)
+    
+    
+    loglikval_s_1.4 <- sum( event_s * log(hP_s + (1/time_s)*splinecubeP(time_s, gamma_est1.4, flex.model1.4$m, flex.model1.4$mpos)$spln *
+                                         exp(splinecube(time_s, gamma_est1.4, flex.model1.4$m, flex.model1.4$mpos)$spln + cova_s %*% beta_est1.4) ) -
+                           exp(splinecube(time_s, gamma_est1.4, flex.model1.4$m, flex.model1.4$mpos)$spln 
+                               + cova_s %*% beta_est1.4) )
+    
+    ### flex 2
+    #2.2
+    beta_est2.2 <- unname( flex.model2.2$coefficients[(1:(dim(flex.model2.2$x)[2]) )] ) 
+    gamma_est2.2 <- unname( flex.model2.2$coefficients[((dim(flex.model2.2$x)[2]+1): (length(flex.model2.2$coefficients)))] ) 
+    
+    value <- c()
+    K <- sort(unique(a$sex.organ))
+    cova_s2 <- cova_s[,-((dim(cova_s)[2]-1):dim(cova_s)[2])]
+    
+    gamma_base2.2 <- gamma_est2.2[1:(flex.model2.2$m+2)]
+    
+    for(k in K){
+      betak <- beta_est2.2
+      gammak <- gamma_est2.2[((flex.model2.2$m+2)+1+(k-1)*(flex.model2.2$m_s+2)):((flex.model2.2$m+2)+(k)*(flex.model2.2$m_s+2))]
+      idx <- a$sex.organ == k
+      
+      timek <- time_s[idx]
+      eventk <- event_s[idx]
+      hPk <- hP_s[idx]
+      covak <- cova_s2[idx, , drop = FALSE]
+      # wk <- w[idx]
+      splk_base <- splinecube(timek, gamma_base2.2, flex.model2.2$m, flex.model2.2$mpos)$spln
+      splkP_base <- splinecubeP(timek, gamma_base2.2, flex.model2.2$m, flex.model2.2$mpos)$spln
+      
+      Kref <- flex.model2.2$Kref
+      
+      if (k != Kref) {
+        splk  <- splinecube(timek, gammak, flex.model2.2$m_s, flex.model2.2$mpos_s)$spln
+        splkP <- splinecubeP(timek, gammak, flex.model2.2$m_s, flex.model2.2$mpos_s)$spln
+      } else {
+        splk <- 0
+        splkP <- 0
+      }
+      linpred <- splk_base + splk + covak %*% betak
+      
+      calc <- hPk + (1/timek) * (splkP_base + splkP) * exp(linpred)
+      
+      ##[calc >= 0] pour éviter des NaN quand les parametres estimés sur une autre base pourraient créer un spln < 0 (surtout sur base de validation)
+      value_k <- sum( (
+        eventk[calc >= 0] * log( calc[calc >= 0] )) -
+          exp(linpred[calc >= 0]))
+      
+      value <- c(value, value_k)
+    }
+    
+    loglikval_s_2.2 <- sum(value)
+    #2.4
+    
+    beta_est2.4 <- unname( flex.model2.4$coefficients[(1:(dim(flex.model2.4$x)[2]) )] ) 
+    gamma_est2.4 <- unname( flex.model2.4$coefficients[((dim(flex.model2.4$x)[2]+1): (length(flex.model2.4$coefficients)))] ) 
+    
+    value <- c()
+    K <- sort(unique(a$sex.organ))
+    cova_s2 <- cova_s[,-((dim(cova_s)[2]-1):dim(cova_s)[2])]
+    
+    gamma_base2.4 <- gamma_est2.4[1:(flex.model2.4$m+2)]
+    
+    for(k in K){
+      betak <- beta_est2.4
+      gammak <- gamma_est2.4[((flex.model2.4$m+2)+1+(k-1)*(flex.model2.4$m_s+2)):((flex.model2.4$m+2)+(k)*(flex.model2.4$m_s+2))]
+      idx <- a$sex.organ == k
+      
+      timek <- time_s[idx]
+      eventk <- event_s[idx]
+      hPk <- hP_s[idx]
+      covak <- cova_s2[idx, , drop = FALSE]
+      # wk <- w[idx]
+      splk_base <- splinecube(timek, gamma_base2.4, flex.model2.4$m, flex.model2.4$mpos)$spln
+      splkP_base <- splinecubeP(timek, gamma_base2.4, flex.model2.4$m, flex.model2.4$mpos)$spln
+      
+      Kref <- flex.model2.4$Kref
+      
+      if (k != Kref) {
+        splk  <- splinecube(timek, gammak, flex.model2.4$m_s, flex.model2.4$mpos_s)$spln
+        splkP <- splinecubeP(timek, gammak, flex.model2.4$m_s, flex.model2.4$mpos_s)$spln
+      } else {
+        splk <- 0
+        splkP <- 0
+      }
+      linpred <- splk_base + splk + covak %*% betak
+      
+      calc <- hPk + (1/timek) * (splkP_base + splkP) * exp(linpred)
+      
+      ##[calc >= 0] pour éviter des NaN quand les parametres estimés sur une autre base pourraient créer un spln < 0 (surtout sur base de validation)
+      value_k <- sum( (
+        eventk[calc >= 0] * log( calc[calc >= 0] )) -
+          exp(linpred[calc >= 0]))
+      
+      value <- c(value, value_k)
+    }
+    
+    loglikval_s_2.4 <- sum(value)
+    
+    logliksval[,ind_strat] <- c(loglikval_s_plann, loglikval_s_1.2, loglikval_s_1.4, loglikval_s_2.2, loglikval_s_2.4, get(paste0("loglikval_WG_",j)) )
+    ind_strat <- ind_strat+1
+    
+  }
+  
+  colnames(logliksval) <- c("WHOLE", strata_names)
   
   write.table(logliksval,  paste0(path0, "LOGLIK/VALID/",i,"_loglikval.csv"))
   ##################DATA TRAIN

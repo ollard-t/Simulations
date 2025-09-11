@@ -50,7 +50,7 @@ latex_table <- function(N, strata, file_name, cens_val, PH_val, PP = FALSE){
   ## roc
   whole_roc <- data.frame()
   for(i in 1:6){
-    whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[1]][c(6, 1:5)][i])))
+    whole_roc <- rbind(whole_roc, unlist(unname(ROCmean_results[[strata]][c(6,2:5,1)][i])))
   }
   if(PP == FALSE){
     whole_roc <- rbind(whole_roc, c(rep(NA,4)))
@@ -69,10 +69,10 @@ latex_table <- function(N, strata, file_name, cens_val, PH_val, PP = FALSE){
     iterations <- iterations[-miss]
   }
   
-  logll <- unname(read.csv(paste0(path0,"TRAIN/",iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
+  logll <- unname(read.csv(paste0(path0,"TRAIN/",iterations[1],"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),strata]
   for(i in iterations[-1]){
     # assign(paste0("a_", i) , unname(read.csv(paste0(path0,i,"_loglik.csv")))[c(2:5,1),] )
-    a <- unname(read.csv(paste0(path0,"TRAIN/",i,"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
+    a <- unname(read.csv(paste0(path0,"TRAIN/",i,"_loglik.csv"), sep= " ", quote = "") )[c(6,2:5,1),strata]
     logll <- cbind(logll, a)
   }
   colnames(logll) <- NULL
@@ -106,7 +106,7 @@ latex_table <- function(N, strata, file_name, cens_val, PH_val, PP = FALSE){
   ## roc
   whole_roc_val <- data.frame()
   for(i in 1:6){
-    whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[1]][c(6,1:5)][i])))
+    whole_roc_val <- rbind(whole_roc_val, unlist(unname(ROCmeanval_results[[strata]][c(6,2:5,1)][i])))
   }
   
   if(PP == FALSE){
@@ -126,10 +126,10 @@ latex_table <- function(N, strata, file_name, cens_val, PH_val, PP = FALSE){
     iterations <- iterations[-miss]
   }
   
-  logllval <- unname(read.csv(paste0(path0,"VALID/",iterations[1],"_loglikval.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
+  logllval <- unname(read.csv(paste0(path0,"VALID/",iterations[1],"_loglikval.csv"), sep= " ", quote = "") )[c(6,2:5,1),strata]
   for(i in iterations[-1]){
     # assign(paste0("a_", i) , unname(read.csv(paste0(path0,i,"_loglik.csv")))[c(2:5,1),] )
-    a <- unname(read.csv(paste0(path0,"VALID/",i,"_loglikval.csv"), sep= " ", quote = "") )[c(6,2:5,1),2]
+    a <- unname(read.csv(paste0(path0,"VALID/",i,"_loglikval.csv"), sep= " ", quote = "") )[c(6,2:5,1),strata]
     logllval <- cbind(logllval, a)
   }
   colnames(logllval) <- NULL
@@ -151,7 +151,7 @@ latex_table <- function(N, strata, file_name, cens_val, PH_val, PP = FALSE){
   
   whole_tout_val <- cbind(whole_biais_val, whole_RMSE_val, whole_roc_val, whole_log_val)
   
-  xt_val <- xtable(whole_tout_val, digits = c(0,4,4,4,4,4,4,4,4,4,4,4,4,4))
+  xt_val <- xtable(whole_tout_val[-7,], digits = c(0,4,4,4,4,4,4,4,4,4,4,4,4,4))
   
   path3 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/",PH_val,"/Output simulations_N",N,"_",PH_val,"_",cens_val,"/")
   
@@ -190,7 +190,7 @@ PH_val = "NPH"
       #     1000
       ###############
 for(i in 1:5){
-  latex_table(1000, i, file_name, cens_val, PH_val, PP = TRUE)
+  latex_table(1000, i, file_name, cens_val, PH_val)
 }
 
 

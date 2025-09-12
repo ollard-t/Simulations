@@ -119,7 +119,7 @@ simulate_iteration <- function(i, N){
   TsigmaFC <- 14 
   TnuFC <- -0.55
   TthetaFC <- 0
-  betaZFC <- c(0.6,2.6,0.3)
+  betaZFC <- c(0.6,2.6,-0.1)
   names(betaZFC) <- names(rsFC$coefficients[1:3])
   
   #### Femmes Rectum

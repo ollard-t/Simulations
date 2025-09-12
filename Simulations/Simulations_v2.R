@@ -3880,7 +3880,7 @@ calc_indic <- function(N){
     
     
     # save.image(paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/",length(iterations),"ite_",N,"ind_",date_launch,".Rdata"))
-    save(list = ls(), file = paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/",length(iterations),"ite_",N,"ind_",date_launch,".Rdata"))
+    save(list = ls(), file = paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/",PH_val,"/",length(iterations),"ite_",N,"ind_",date_launch,".Rdata"))
     
     }## fin funtion calc_ind    
 calc_indic_PP <- function(N){
@@ -5089,7 +5089,7 @@ calc_indic_PP <- function(N){
   }
   
   # save.image(paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/",length(iterations),"ite_",N,"ind_",date_launch,"_PP.Rdata"))
-  save(list = ls(), file = paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/",length(iterations),"ite_",N,"ind_",date_launch,"_PP.Rdata"))
+  save(list = ls(), file = paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/",PH_val,"/",length(iterations),"ite_",N,"ind_",date_launch,"_PP.Rdata"))
   
 }
 ####################################################################################################
@@ -5127,7 +5127,7 @@ while (TRUE) {
 
 rm(list = setdiff(ls(envir = .GlobalEnv), 
                   c("path0", "date_launch", "fr.ratetable", "slopop", 
-                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP")), envir = .GlobalEnv) ## cleaning de l'environnement excpeté ce qu iva être réutilisé
+                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP", "cens_val", "PH_val")), envir = .GlobalEnv) ## cleaning de l'environnement excpeté ce qu iva être réutilisé
 ## 1000SiEND
 
 ############################
@@ -5151,13 +5151,13 @@ calc_indic(N = 1000)
 
 rm(list = setdiff(ls(envir = .GlobalEnv), 
                   c("path0", "date_launch", "fr.ratetable", "slopop", 
-                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP", "iterations")), envir = .GlobalEnv)
+                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP", "iterations", "cens_val", "PH_val")), envir = .GlobalEnv)
 
 calc_indic_PP(N = 1000)
 
 rm(list = setdiff(ls(envir = .GlobalEnv), 
                   c("path0", "date_launch", "fr.ratetable", "slopop", 
-                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP")), envir = .GlobalEnv)
+                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP", "cens_val", "PH_val")), envir = .GlobalEnv)
 ### 1000IndEND
 
 
@@ -5197,7 +5197,7 @@ while (TRUE) {
 
 rm(list = setdiff(ls(envir = .GlobalEnv), 
                   c("path0", "date_launch", "fr.ratetable", "slopop", 
-                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP")), envir = .GlobalEnv) ## cleaning de l'environnement excpeté ce qu iva être réutilisé
+                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP", "cens_val", "PH_val")), envir = .GlobalEnv) ## cleaning de l'environnement excpeté ce qu iva être réutilisé
 ## 3000SiEND
 
 ############################
@@ -5221,13 +5221,13 @@ calc_indic(N = 3000)
 
 rm(list = setdiff(ls(envir = .GlobalEnv), 
                   c("path0", "date_launch", "fr.ratetable", "slopop", 
-                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP", "iterations")), envir = .GlobalEnv)
+                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP", "iterations", "cens_val", "PH_val")), envir = .GlobalEnv)
 
 calc_indic_PP(N = 3000)
 
 rm(list = setdiff(ls(envir = .GlobalEnv), 
                   c("path0", "date_launch", "fr.ratetable", "slopop", 
-                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP")), envir = .GlobalEnv)
+                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP", "cens_val", "PH_val")), envir = .GlobalEnv)
 ### 3000IndEND
 
 

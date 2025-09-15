@@ -115,11 +115,11 @@ simulate_iteration <- function(i, N){
   betaZHR <- c(1.2,3,0.35)
   
   #### Femmes Colon
-  TsigmaFC <- 14
-  TnuFC <- -0.55
+  TsigmaFC <- 7
+  TnuFC <- 0.55
   TthetaFC <- 0
-  betaZFC <- c(0.6,2.6,-0.1)
-  
+  betaZFC <- c(-0.6,-2.6,0.1)
+
   #### Femmes Rectum
   TsigmaFR <- 11.5
   TnuFR <- -0.4

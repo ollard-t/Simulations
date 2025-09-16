@@ -14,7 +14,7 @@
 
 ###Vérification que tous les dossiers de sauvegarde existent 
 cens_val <- "HC"
-PH_val <- "NPH"
+PH_val <- "PH"
 
 file.exists("~/Documents/Rstudio/Simulations/BASES/")
 for(N in c(1000,3000,5000)){
@@ -125,6 +125,14 @@ simulate_iteration <- function(i, N){
   TnuFR <- -0.4
   TthetaFR <- 0
   betaZFR <- c(0.9,2.7,0.16)
+  
+  if(PH_val == "PH"){
+    TsigmaHC <- TsigmaHR <-TsigmaFC <- TsigmaFR <- Tsigma
+    TnuHC <- TnuHR <-TnuFC <- TnuFR <- Tnu
+    TthetaHC <- TthetaHR <-TthetaFC <- TthetaFR <- Ttheta
+    betaZHC <- betaZHR <-betaZFC <- betaZFR <- betaZ
+    
+  }
   ############### validation sample
   N <- dim(data)[1]
   N_train <- N/2 #500

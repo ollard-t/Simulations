@@ -231,7 +231,15 @@ simulate_iteration <- function(i, N){
       Ttheta = TthetaFR
       betaZ = betaZFR
     }
-    Sn(time = newtimes, sigma = Tsigma, nu = Tnu, theta = Ttheta, beta = betaZ, covariates = Zdata_train[i,-c(4,5)]) }
+    
+    covaZ <- Zdata_train
+    if(cens_val == "NPH"){
+      covaZ <- covaZ[,-c(4,5)]
+    }
+    
+    Sn(time = newtimes, sigma = Tsigma, nu = Tnu, theta = Ttheta, beta = betaZ, covariates = covaZ[i,])
+    
+  }
   
   theopred <- t(sapply(1:dim(Zdata_train)[1], FUN = funtheo ))
   colnames(theopred) <- newtimes
@@ -278,7 +286,13 @@ simulate_iteration <- function(i, N){
         Ttheta = TthetaFR
         betaZ = betaZFR
       }
-      Sn(time = newtimes, sigma = Tsigma, nu = Tnu, theta = Ttheta, beta = betaZ, covariates = Zdata_train[i,-c(4,5)]) }
+      
+      covaZ <- Zdata_train
+      if(cens_val == "NPH"){
+        covaZ <- covaZ[,-c(4,5)]
+      }
+      
+      Sn(time = newtimes, sigma = Tsigma, nu = Tnu, theta = Ttheta, beta = betaZ, covariates = covaZ[i,]) }
     
     theopredstrat <- t(sapply(1:dim(Zdata_train)[1], FUN = funtheostrat ))
     
@@ -328,7 +342,13 @@ simulate_iteration <- function(i, N){
       Ttheta = TthetaFR
       betaZ = betaZFR
     }
-    Sn(time = newtimes, sigma = Tsigma, nu = Tnu, theta = Ttheta, beta = betaZ, covariates = Zdata_val[i,-c(4,5)]) }
+    
+    covaZ <- Zdata_val
+    if(cens_val == "NPH"){
+      covaZ <- covaZ[,-c(4,5)]
+    }
+    
+    Sn(time = newtimes, sigma = Tsigma, nu = Tnu, theta = Ttheta, beta = betaZ, covariates = covaZ[i,]) }
   
   theopredval <- t(sapply(1:dim(Zdata_val)[1], FUN = funtheo_val ))
   
@@ -375,7 +395,13 @@ simulate_iteration <- function(i, N){
         Ttheta = TthetaFR
         betaZ = betaZFR
       }
-      Sn(time = newtimes, sigma = Tsigma, nu = Tnu, theta = Ttheta, beta = betaZ, covariates = Zdata_val[i,-c(4,5)]) }
+      
+      covaZ <- Zdata_val
+      if(cens_val == "NPH"){
+        covaZ <- covaZ[,-c(4,5)]
+      }
+      
+      Sn(time = newtimes, sigma = Tsigma, nu = Tnu, theta = Ttheta, beta = betaZ, covariates = covaZ[i,]) }
     
     theopredvalstrat <- t(sapply(1:dim(Zdata_val)[1], FUN = funtheovalstrat ))
     
@@ -5165,7 +5191,7 @@ calc_indic_PP(N = 1000, iterations = iterations)
 
 rm(list = setdiff(ls(envir = .GlobalEnv), 
                   c("path0", "date_launch", "fr.ratetable", "slopop", 
-                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP", "cens_val", "PH_val")), envir = .GlobalEnv)
+                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP", "iterations", "cens_val", "PH_val")), envir = .GlobalEnv)
 ### 1000IndEND
 
 
@@ -5235,7 +5261,7 @@ calc_indic_PP(N = 3000, iterations = iterations)
 
 rm(list = setdiff(ls(envir = .GlobalEnv), 
                   c("path0", "date_launch", "fr.ratetable", "slopop", 
-                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP", "cens_val", "PH_val")), envir = .GlobalEnv)
+                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP", "iterations", "cens_val", "PH_val")), envir = .GlobalEnv)
 ### 3000IndEND
 
 
@@ -5306,5 +5332,5 @@ calc_indic_PP(N = 5000, iterations = iterations)
 
 rm(list = setdiff(ls(envir = .GlobalEnv), 
                   c("path0", "date_launch", "fr.ratetable", "slopop", 
-                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP", "cens_val", "PH_val")), envir = .GlobalEnv)
+                    "colrec", "Sn", "simulate_iteration", "calc_indic", "calc_indic_PP", "iterations", "cens_val", "PH_val")), envir = .GlobalEnv)
 ### 5000IndEND

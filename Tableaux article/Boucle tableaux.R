@@ -183,9 +183,9 @@ latex_table <- function(N, strata, file_name, cens_val, PH_val, PP = FALSE){
 # 4 = FC
 # 5 = FR
 
-file_name = "828ite_1000ind_2025-09-04"
-cens_val = "HC"
-PH_val = "NPH"
+file_name = "974ite_1000ind_PH_LC_2025-09-17"
+cens_val = "LC"
+PH_val = "PH"
       ###############
       #     1000
       ###############

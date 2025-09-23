@@ -233,7 +233,7 @@ simulate_iteration <- function(i, N){
     }
     
     covaZ <- Zdata_train
-    if(cens_val == "NPH"){
+    if(PH_val == "NPH"){
       covaZ <- covaZ[,-c(4,5)]
     }
     
@@ -288,7 +288,7 @@ simulate_iteration <- function(i, N){
       }
       
       covaZ <- Zdata_train
-      if(cens_val == "NPH"){
+      if(PH_val == "NPH"){
         covaZ <- covaZ[,-c(4,5)]
       }
       
@@ -344,7 +344,7 @@ simulate_iteration <- function(i, N){
     }
     
     covaZ <- Zdata_val
-    if(cens_val == "NPH"){
+    if(PH_val == "NPH"){
       covaZ <- covaZ[,-c(4,5)]
     }
     
@@ -397,7 +397,7 @@ simulate_iteration <- function(i, N){
       }
       
       covaZ <- Zdata_val
-      if(cens_val == "NPH"){
+      if(PH_val == "NPH"){
         covaZ <- covaZ[,-c(4,5)]
       }
       

@@ -104,28 +104,29 @@ simulate_iteration <- function(i, N){
   betaZ <- c(0.9,2.7,0.3,-0.1,-0.1)
   
   TsigmaHC <- 13.0
-  TnuHC <- -0.55
+  TnuHC <- -0.55  
   TthetaHC <- 0
   betaZHC <- c(1,2.9,0.2)
-  
+
   #### Hommes Rectum
   TsigmaHR <- 12.75
   TnuHR <- -0.3
-  TthetaHR <- 0                      
+  TthetaHR <- 0
   betaZHR <- c(1.2,3,0.35)
-  
+
   #### Femmes Colon
-  TsigmaFC <- 7
-  TnuFC <- 0.55
+  
+  TsigmaFC <- 14
+  TnuFC <- -0.55
   TthetaFC <- 0
-  betaZFC <- c(-0.6,-2.6,0.1)
+  betaZFC <- c(0.6, 2.6, -0.1) # c(0.6,2.6,-0.1)
 
   #### Femmes Rectum
-  TsigmaFR <- 11.5
-  TnuFR <- -0.4
+  TsigmaFR <- 8
+  TnuFR <- 1.5
   TthetaFR <- 0
   betaZFR <- c(0.9,2.7,0.16)
-  
+
   if(PH_val == "PH"){
     TsigmaHC <- TsigmaHR <-TsigmaFC <- TsigmaFR <- Tsigma
     TnuHC <- TnuHR <-TnuFC <- TnuFR <- Tnu

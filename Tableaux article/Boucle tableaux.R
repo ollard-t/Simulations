@@ -1,6 +1,15 @@
 library(xtable)
 
-latex_table <- function(N, strata, file_name, cens_val, PH_val, PP = FALSE){
+latex_table <- function(N, strata, cens_val, PH_val, PP = FALSE){
+  
+  dir_path <-  paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/",PH_val)
+  
+  pattern <- paste0( N, "ind_", PH_val, "_", cens_val)
+  
+  matching_files <- list.files(path = dir_path, pattern = pattern, full.names = TRUE)
+  matching_files <- matching_files[!grepl("PP", matching_files)]
+  file_name <- tools::file_path_sans_ext(basename(matching_files))
+  
   path1 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/",PH_val,"/",file_name,".Rdata")#nom à changer
   load(path1)
   if(PP == TRUE){
@@ -170,7 +179,7 @@ latex_table <- function(N, strata, file_name, cens_val, PH_val, PP = FALSE){
   print(paste0("Nombre Inf PLANN : ", length(PLANNInfcount),". Détail : ", paste(PLANNInfcount, collapse = ", ")))
   print(paste0("Nombre NA FLEX2.2 : ", length(F2.2count),". Détail : ", paste(F2.2count, collapse = ", ")))
   print(paste0("Nombre NA FLEX2.4 : ", length(F2.4count),". Détail : ", paste(F2.4count, collapse = ", ")))
-  
+  print(paste0("Nom du fichier : ", file_name))
   
   print(xt, type = "latex", sanitize.rownames.function = identity)
   print(xt_val, type = "latex", sanitize.rownames.function = identity)
@@ -183,29 +192,39 @@ latex_table <- function(N, strata, file_name, cens_val, PH_val, PP = FALSE){
 # 4 = FC
 # 5 = FR
 
-file_name = "974ite_1000ind_PH_LC_2025-09-17"
+# file_name = "974ite_1000ind_PH_LC_2025-09-17"
+
 cens_val = "LC"
 PH_val = "PH"
-      ###############
-      #     1000
-      ###############
+
+###############
+#     1000
+###############
 for(i in 1:5){
-  latex_table(1000, i, file_name, cens_val, PH_val)
+  latex_table(1000, i, cens_val, PH_val)
 }
 
-
+for(i in 1:5){
+  latex_table(1000, i, cens_val, PH_val, PP =TRUE)
+}
  ###############
 #     3000
 ###############
 for(i in 1:5){
-  latex_table(3000, i, file_name, cens_val, PH_val, PP =TRUE)
+  latex_table(3000, i, cens_val, PH_val)
+}
+
+for(i in 1:5){
+  latex_table(3000, i, cens_val, PH_val, PP =TRUE)
 }
 
 ###############
 #     5000
 ###############
 for(i in 1:5){
-  latex_table(5000, i, file_name, cens_val, PH_val)
+  latex_table(5000, i, cens_val, PH_val)
 }
 
-
+for(i in 1:5){
+  latex_table(5000, i, cens_val, PH_val, PP = TRUE)
+}

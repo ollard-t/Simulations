@@ -1,6 +1,6 @@
 library(xtable)
 
-latex_table <- function(N, strata, cens_val, PH_val, PP = FALSE){
+latex_table <- function(N, strata, cens_val, PH_val, PP = FALSE, med.rm = FALSE){
   
   dir_path <-  paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/",PH_val)
   
@@ -32,12 +32,12 @@ latex_table <- function(N, strata, cens_val, PH_val, PP = FALSE){
     method_names_val <- method_names_val[-7]
     article_names <- article_names[-7]
   }
-
+  
   if(PP == FALSE){
     colnames(biais_PP) <- colnames(biais_FLEX1.2)
-  
+    
     colnames(biais_PPval) <- colnames(biais_FLEX1.2)
-  
+    
     colnames(RMSE_PP) <- colnames(RMSE_FLEX1.2)
     colnames(RMSE_PPval) <- colnames(RMSE_FLEX1.2)
   }
@@ -86,7 +86,27 @@ latex_table <- function(N, strata, cens_val, PH_val, PP = FALSE){
   }
   colnames(logll) <- NULL
   
-  whole_log <- as.data.frame( t(t(apply(logll, mean, MARGIN = 1))) )
+  PLANNInfcount <- which(apply(logll, 2, function(x) any(is.infinite(x))))
+  F2.2count <- which(is.na(logll[4,]))
+  F2.4count <- which(is.na(logll[5,]))
+  
+  mat <- as.matrix(logll)
+  mat[mat == -Inf] <- NA
+  logll <- as.data.frame(mat)
+  if(med.rm ==TRUE){
+    
+    logll[abs(logll - median(as.numeric(unlist(logll)), na.rm = TRUE))  > abs(median(as.numeric(unlist(logll)), na.rm = TRUE))] <- NA
+    
+  }
+  
+  WGcount <- which(is.na(logll[1,]))
+  F1.2count <- which(is.na(logll[2,]))
+  F1.4count <- which(is.na(logll[3,]))
+  F2.2count2 <- which(is.na(logll[4,]))
+  F2.4count2 <- which(is.na(logll[5,]))
+  PLANNcount <- which(is.na(logll[6,]))
+  
+  whole_log <- as.data.frame( t(t(apply(logll, mean, na.rm = TRUE, MARGIN = 1))) )
   if(PP == FALSE){
     whole_log <-rbind(whole_log, NA)
   }
@@ -94,7 +114,10 @@ latex_table <- function(N, strata, cens_val, PH_val, PP = FALSE){
   
   whole_tout <- cbind(whole_biais, whole_RMSE, whole_roc, whole_log)
   
-  xt <- xtable(whole_tout, digits = c(0,4,4,4,4,4,4,4,4,4,4,4,4,4))
+  whole_tout <- whole_tout[,-c(1,5,9)]
+  whole_tout[,1:6] <- whole_tout[,1:6]*100
+  
+  xt <- xtable(whole_tout, digits = c(0,2,2,2,2,2,2,4,4,4,2))
   
   ####### VALID
   
@@ -143,13 +166,25 @@ latex_table <- function(N, strata, cens_val, PH_val, PP = FALSE){
   }
   colnames(logllval) <- NULL
   
-  PLANNInfcount <- which(apply(logllval, 2, function(x) any(is.infinite(x))))
-  F2.2count <- which(is.na(logllval[4,]))
-  F2.4count <- which(is.na(logllval[5,]))
+  PLANNInfcountval <- which(apply(logllval, 2, function(x) any(is.infinite(x))))
+  F2.2countval <- which(is.na(logllval[4,]))
+  F2.4countval <- which(is.na(logllval[5,]))
   
   mat <- as.matrix(logllval)
   mat[mat == -Inf] <- NA
   logllval <- as.data.frame(mat)
+  if(med.rm ==TRUE){
+    
+    logllval[abs(logllval - median(as.numeric(unlist(logllval)), na.rm = TRUE))  > abs(median(as.numeric(unlist(logllval)), na.rm = TRUE))] <- NA
+    
+  }
+  
+  WGcountval <- which(is.na(logllval[1,]))
+  F1.2countval <- which(is.na(logllval[2,]))
+  F1.4countval <- which(is.na(logllval[3,]))
+  F2.2countval2 <- which(is.na(logllval[4,]))
+  F2.4countval2 <- which(is.na(logllval[5,]))
+  PLANNcountval <- which(is.na(logllval[6,]))
   
   whole_log_val <- as.data.frame( t(t(apply(logllval, mean, na.rm = TRUE, MARGIN = 1))) )
   
@@ -159,9 +194,11 @@ latex_table <- function(N, strata, cens_val, PH_val, PP = FALSE){
   rownames(whole_log_val) <- article_names
   
   whole_tout_val <- cbind(whole_biais_val, whole_RMSE_val, whole_roc_val, whole_log_val)
+  whole_tout_val[,1:6] <- whole_tout_val[,1:6]*100
   
-  xt_val <- xtable(whole_tout_val[-7,], digits = c(0,4,4,4,4,4,4,4,4,4,4,4,4,4))
-  
+  xt_val <- xtable(whole_tout_val[-7,-c(1,5,9)], digits = c(0,2,2,2,2,2,2,4,4,4,2))
+
+
   path3 <- paste0("~/Documents/Rstudio/Simulations/Simulations mai 2025/Résultats/N",N,"_results/",PH_val,"/Output simulations_N",N,"_",PH_val,"_",cens_val,"/")
   
   if(!(strata == 1)){
@@ -174,14 +211,33 @@ latex_table <- function(N, strata, cens_val, PH_val, PP = FALSE){
       a <- read.csv(paste0(path3,"DATAFRAMES/TRAIN/",name,"/",i,"_dftrain_",name,".csv"), sep = ";")
       prop <- c(prop, dim(a)[1])
     }
-    print(paste0("Taille sous-groupe : ", mean(prop)/(N/2)))
+    print(paste0("Taille sous-groupe ", name, " : ", mean(prop)/(N/2)))
   }
+
+  
   print(paste0("Nombre Inf PLANN : ", length(PLANNInfcount),". Détail : ", paste(PLANNInfcount, collapse = ", ")))
   print(paste0("Nombre NA FLEX2.2 : ", length(F2.2count),". Détail : ", paste(F2.2count, collapse = ", ")))
   print(paste0("Nombre NA FLEX2.4 : ", length(F2.4count),". Détail : ", paste(F2.4count, collapse = ", ")))
-  print(paste0("Nom du fichier : ", file_name))
+  print(paste0("Modèles non-convergés WG : ", length(WGcount),". Détail : ", paste(WGcount, collapse = ", ")))
+  print(paste0("Modèles non-convergés FLEX1.2 : ", length(F1.2count),". Détail : ", paste(F1.2count, collapse = ", ")))
+  print(paste0("Modèles non-convergés FLEX1.4 : ", length(F1.4count),". Détail : ", paste(F1.4count, collapse = ", ")))
+  print(paste0("Modèles non-convergés FLEX2.2 : ", length(F2.2count2),". Détail : ", paste(F2.2count2, collapse = ", ")))
+  print(paste0("Modèles non-convergés FLEX2.4 : ", length(F2.4count2),". Détail : ", paste(F2.4count2, collapse = ", ")))
+  print(paste0("Modèles non-convergés PLANN : ", length(PLANNcount),". Détail : ", paste(PLANNcount, collapse = ", ")))
   
   print(xt, type = "latex", sanitize.rownames.function = identity)
+  
+  ## validation
+  print(paste0("Nombre Inf PLANN : ", length(PLANNInfcountval),". Détail : ", paste(PLANNInfcountval, collapse = ", ")))
+  print(paste0("Nombre NA FLEX2.2 : ", length(F2.2countval),". Détail : ", paste(F2.2countval, collapse = ", ")))
+  print(paste0("Nombre NA FLEX2.4 : ", length(F2.4countval),". Détail : ", paste(F2.4countval, collapse = ", ")))
+  print(paste0("Modèles non-convergés WG : ", length(WGcountval),". Détail : ", paste(WGcountval, collapse = ", ")))
+  print(paste0("Modèles non-convergés FLEX1.2 : ", length(F1.2countval),". Détail : ", paste(F1.2countval, collapse = ", ")))
+  print(paste0("Modèles non-convergés FLEX1.4 : ", length(F1.4countval),". Détail : ", paste(F1.4countval, collapse = ", ")))
+  print(paste0("Modèles non-convergés FLEX2.2 : ", length(F2.2countval2),". Détail : ", paste(F2.2countval2, collapse = ", ")))
+  print(paste0("Modèles non-convergés FLEX2.4 : ", length(F2.4countval2),". Détail : ", paste(F2.4countval2, collapse = ", ")))
+  print(paste0("Modèles non-convergés PLANN : ", length(PLANNcountval),". Détail : ", paste(PLANNcountval, collapse = ", ")))
+  
   print(xt_val, type = "latex", sanitize.rownames.function = identity)
 }
 
@@ -195,7 +251,7 @@ latex_table <- function(N, strata, cens_val, PH_val, PP = FALSE){
 # file_name = "974ite_1000ind_PH_LC_2025-09-17"
 
 cens_val = "HC"
-PH_val = "PH"
+PH_val = "NPH"
 
 ###############
 #     1000
@@ -207,7 +263,7 @@ for(i in 1:5){
 for(i in 1:5){
   latex_table(1000, i, cens_val, PH_val, PP =TRUE)
 }
- ###############
+###############
 #     3000
 ###############
 for(i in 1:5){

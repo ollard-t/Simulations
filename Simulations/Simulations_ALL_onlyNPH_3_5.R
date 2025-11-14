@@ -1105,7 +1105,6 @@ simulate_iteration <- function(i, N){
     
     assign("loglik_s_plann", get(paste0("plannpred_",j))$loglik)
     
-    
     ### flex 1
     #1.2
     beta_est1.2 <- flex1.2.coeff[1:(length(flex1.2.coeff)-(flex.model1.2$m+2))]
@@ -1155,8 +1154,9 @@ simulate_iteration <- function(i, N){
       Kref <- flex.model2.2$Kref
       
       if (k != Kref) {
-        splk  <- splinecube(timek, gammak, flex.model2.2$m_s, flex.model2.2$mpos_s)$spln
-        splkP <- splinecubeP(timek, gammak, flex.model2.2$m_s, flex.model2.2$mpos_s)$spln
+        mpos_s_k <- flex.model2.2$mpos_s[[k]]
+        splk  <- splinecube(timek, gammak, flex.model2.2$m_s, mpos_s_k)$spln
+        splkP <- splinecubeP(timek, gammak, flex.model2.2$m_s, mpos_s_k)$spln
       } else {
         splk <- 0
         splkP <- 0
@@ -1201,8 +1201,9 @@ simulate_iteration <- function(i, N){
       Kref <- flex.model2.4$Kref
       
       if (k != Kref) {
-        splk  <- splinecube(timek, gammak, flex.model2.4$m_s, flex.model2.4$mpos_s)$spln
-        splkP <- splinecubeP(timek, gammak, flex.model2.4$m_s, flex.model2.4$mpos_s)$spln
+        mpos_s_k <- flex.model2.4$mpos_s[[k]]
+        splk  <- splinecube(timek, gammak, flex.model2.4$m_s, mpos_s_k)$spln
+        splkP <- splinecubeP(timek, gammak, flex.model2.4$m_s, mpos_s_k)$spln
       } else {
         splk <- 0
         splkP <- 0
@@ -1245,7 +1246,6 @@ simulate_iteration <- function(i, N){
   ### plann
   
   loglikval_plann <- plannpredval$loglik
-  
   
   ### flex 1
   #1.2
@@ -1298,8 +1298,9 @@ simulate_iteration <- function(i, N){
     Kref <- flex.model2.2$Kref
     
     if (k != Kref) {
-      splk  <- splinecube(timek, gammak, flex.model2.2$m_s, flex.model2.2$mpos_s)$spln
-      splkP <- splinecubeP(timek, gammak, flex.model2.2$m_s, flex.model2.2$mpos_s)$spln
+      mpos_s_k <- flex.model2.2$mpos_s[[k]]
+      splk  <- splinecube(timek, gammak, flex.model2.2$m_s,  mpos_s_k)$spln
+      splkP <- splinecubeP(timek, gammak, flex.model2.2$m_s,  mpos_s_k)$spln
     } else {
       splk <- 0
       splkP <- 0
@@ -1344,8 +1345,9 @@ simulate_iteration <- function(i, N){
     Kref <- flex.model2.4$Kref
     
     if (k != Kref) {
-      splk  <- splinecube(timek, gammak, flex.model2.4$m_s, flex.model2.4$mpos_s)$spln
-      splkP <- splinecubeP(timek, gammak, flex.model2.4$m_s, flex.model2.4$mpos_s)$spln
+      mpos_s_k <- flex.model2.4$mpos_s[[k]]
+      splk  <- splinecube(timek, gammak, flex.model2.4$m_s, mpos_s_k)$spln
+      splkP <- splinecubeP(timek, gammak, flex.model2.4$m_s, mpos_s_k)$spln
     } else {
       splk <- 0
       splkP <- 0
@@ -1482,10 +1484,10 @@ simulate_iteration <- function(i, N){
       hP_s <- c(hP_s, expectedhaz(slopop, age=a[d, "age"], sex=a[d, "sex"],
                                   year=a[d, "year"], time=time_s[d]) )
     }
+    
     ### plann
     
     assign("loglikval_s_plann", get(paste0("plannpredval_",j))$loglik)
-    
     
     ### flex 1
     #1.2
@@ -1536,8 +1538,9 @@ simulate_iteration <- function(i, N){
       Kref <- flex.model2.2$Kref
       
       if (k != Kref) {
-        splk  <- splinecube(timek, gammak, flex.model2.2$m_s, flex.model2.2$mpos_s)$spln
-        splkP <- splinecubeP(timek, gammak, flex.model2.2$m_s, flex.model2.2$mpos_s)$spln
+        mpos_s_k <- flex.model2.2$mpos_s[[k]]
+        splk  <- splinecube(timek, gammak, flex.model2.2$m_s, mpos_s_k)$spln
+        splkP <- splinecubeP(timek, gammak, flex.model2.2$m_s, mpos_s_k)$spln
       } else {
         splk <- 0
         splkP <- 0
@@ -1582,8 +1585,9 @@ simulate_iteration <- function(i, N){
       Kref <- flex.model2.4$Kref
       
       if (k != Kref) {
-        splk  <- splinecube(timek, gammak, flex.model2.4$m_s, flex.model2.4$mpos_s)$spln
-        splkP <- splinecubeP(timek, gammak, flex.model2.4$m_s, flex.model2.4$mpos_s)$spln
+        mpos_s_k <- flex.model2.4$mpos_s[[k]]
+        splk  <- splinecube(timek, gammak, flex.model2.4$m_s, mpos_s_k)$spln
+        splkP <- splinecubeP(timek, gammak, flex.model2.4$m_s, mpos_s_k)$spln
       } else {
         splk <- 0
         splkP <- 0
@@ -6433,7 +6437,6 @@ simulate_iteration <- function(i, N){
     
     assign("loglik_s_plann", get(paste0("plannpred_",j))$loglik)
     
-    
     ### flex 1
     #1.2
     beta_est1.2 <- flex1.2.coeff[1:(length(flex1.2.coeff)-(flex.model1.2$m+2))]
@@ -6483,8 +6486,9 @@ simulate_iteration <- function(i, N){
       Kref <- flex.model2.2$Kref
       
       if (k != Kref) {
-        splk  <- splinecube(timek, gammak, flex.model2.2$m_s, flex.model2.2$mpos_s)$spln
-        splkP <- splinecubeP(timek, gammak, flex.model2.2$m_s, flex.model2.2$mpos_s)$spln
+        mpos_s_k <- flex.model2.2$mpos_s[[k]]
+        splk  <- splinecube(timek, gammak, flex.model2.2$m_s, mpos_s_k)$spln
+        splkP <- splinecubeP(timek, gammak, flex.model2.2$m_s, mpos_s_k)$spln
       } else {
         splk <- 0
         splkP <- 0
@@ -6529,8 +6533,9 @@ simulate_iteration <- function(i, N){
       Kref <- flex.model2.4$Kref
       
       if (k != Kref) {
-        splk  <- splinecube(timek, gammak, flex.model2.4$m_s, flex.model2.4$mpos_s)$spln
-        splkP <- splinecubeP(timek, gammak, flex.model2.4$m_s, flex.model2.4$mpos_s)$spln
+        mpos_s_k <- flex.model2.4$mpos_s[[k]]
+        splk  <- splinecube(timek, gammak, flex.model2.4$m_s, mpos_s_k)$spln
+        splkP <- splinecubeP(timek, gammak, flex.model2.4$m_s, mpos_s_k)$spln
       } else {
         splk <- 0
         splkP <- 0
@@ -6573,7 +6578,6 @@ simulate_iteration <- function(i, N){
   ### plann
   
   loglikval_plann <- plannpredval$loglik
-  
   
   ### flex 1
   #1.2
@@ -6626,8 +6630,9 @@ simulate_iteration <- function(i, N){
     Kref <- flex.model2.2$Kref
     
     if (k != Kref) {
-      splk  <- splinecube(timek, gammak, flex.model2.2$m_s, flex.model2.2$mpos_s)$spln
-      splkP <- splinecubeP(timek, gammak, flex.model2.2$m_s, flex.model2.2$mpos_s)$spln
+      mpos_s_k <- flex.model2.2$mpos_s[[k]]
+      splk  <- splinecube(timek, gammak, flex.model2.2$m_s,  mpos_s_k)$spln
+      splkP <- splinecubeP(timek, gammak, flex.model2.2$m_s,  mpos_s_k)$spln
     } else {
       splk <- 0
       splkP <- 0
@@ -6672,8 +6677,9 @@ simulate_iteration <- function(i, N){
     Kref <- flex.model2.4$Kref
     
     if (k != Kref) {
-      splk  <- splinecube(timek, gammak, flex.model2.4$m_s, flex.model2.4$mpos_s)$spln
-      splkP <- splinecubeP(timek, gammak, flex.model2.4$m_s, flex.model2.4$mpos_s)$spln
+      mpos_s_k <- flex.model2.4$mpos_s[[k]]
+      splk  <- splinecube(timek, gammak, flex.model2.4$m_s, mpos_s_k)$spln
+      splkP <- splinecubeP(timek, gammak, flex.model2.4$m_s, mpos_s_k)$spln
     } else {
       splk <- 0
       splkP <- 0
@@ -6810,10 +6816,10 @@ simulate_iteration <- function(i, N){
       hP_s <- c(hP_s, expectedhaz(slopop, age=a[d, "age"], sex=a[d, "sex"],
                                   year=a[d, "year"], time=time_s[d]) )
     }
+    
     ### plann
     
     assign("loglikval_s_plann", get(paste0("plannpredval_",j))$loglik)
-    
     
     ### flex 1
     #1.2
@@ -6864,8 +6870,9 @@ simulate_iteration <- function(i, N){
       Kref <- flex.model2.2$Kref
       
       if (k != Kref) {
-        splk  <- splinecube(timek, gammak, flex.model2.2$m_s, flex.model2.2$mpos_s)$spln
-        splkP <- splinecubeP(timek, gammak, flex.model2.2$m_s, flex.model2.2$mpos_s)$spln
+        mpos_s_k <- flex.model2.2$mpos_s[[k]]
+        splk  <- splinecube(timek, gammak, flex.model2.2$m_s, mpos_s_k)$spln
+        splkP <- splinecubeP(timek, gammak, flex.model2.2$m_s, mpos_s_k)$spln
       } else {
         splk <- 0
         splkP <- 0
@@ -6910,8 +6917,9 @@ simulate_iteration <- function(i, N){
       Kref <- flex.model2.4$Kref
       
       if (k != Kref) {
-        splk  <- splinecube(timek, gammak, flex.model2.4$m_s, flex.model2.4$mpos_s)$spln
-        splkP <- splinecubeP(timek, gammak, flex.model2.4$m_s, flex.model2.4$mpos_s)$spln
+        mpos_s_k <- flex.model2.4$mpos_s[[k]]
+        splk  <- splinecube(timek, gammak, flex.model2.4$m_s, mpos_s_k)$spln
+        splkP <- splinecubeP(timek, gammak, flex.model2.4$m_s, mpos_s_k)$spln
       } else {
         splk <- 0
         splkP <- 0

@@ -25,19 +25,19 @@ latex_table <- function(N, strata, cens_val, PH_val, PP = FALSE, yearoff = FALSE
                     "PLANN", "PP")
   method_names_val <- c("WGval", "FLEX1.2val", "FLEX1.4val", "FLEX2.2val", "FLEX2.4val",
                         "PLANNval", "PPval")
-  article_names <- c("&Weibull", "~ & ~ &Flexnet1.2","~ & ~ &Flexnet1.4","~ & ~ &Flexnet2.2","~ & ~ &Flexnet2.4", "~ & ~ &PLANN", "~ & ~ &Pohar Perme")
+  article_names <- c("&Weibull", "~ & ~ &Flexible 2","~ & ~ &Flexible 4","~ & ~ &Flexible 2 (TD)","~ & ~ &Flexible 4 (TD)", "~ & ~ &PLANN", "~ & ~ &Pohar Perme")
   
   if(PP == TRUE){
     method_names <- method_names[-7]
     method_names_val <- method_names_val[-7]
     article_names <- article_names[-7]
   }
-
+  
   if(PP == FALSE){
     colnames(biais_PP) <- colnames(biais_FLEX1.2)
-  
+    
     colnames(biais_PPval) <- colnames(biais_FLEX1.2)
-  
+    
     colnames(RMSE_PP) <- colnames(RMSE_FLEX1.2)
     colnames(RMSE_PPval) <- colnames(RMSE_FLEX1.2)
   }
@@ -209,37 +209,57 @@ latex_table <- function(N, strata, cens_val, PH_val, PP = FALSE, yearoff = FALSE
 
 # file_name = "974ite_1000ind_PH_LC_2025-09-17"
 
-cens_val = "LC"
-PH_val = "PH"
+cens_val = "HC"
+PH_val = "NPH"
 
 ###############
-#     1000
+#     WHOLE
 ###############
-for(i in 1:5){
-  latex_table(1000, i, cens_val, PH_val, yearoff = TRUE)
+for(i in c(1000,3000,5000)){
+  latex_table(i, 1, cens_val, PH_val, yearoff = TRUE)
 }
 
-for(i in 1:5){
-  latex_table(1000, i, cens_val, PH_val, PP =TRUE, yearoff = TRUE)
+for(i in c(1000,3000,5000)){
+  latex_table(i, 1, cens_val, PH_val, PP =TRUE, yearoff = TRUE)
 }
- ###############
-#     3000
 ###############
-for(i in 1:5){
-  latex_table(3000, i, cens_val, PH_val, yearoff = TRUE)
+#     HC
+###############
+for(i in c(1000,3000,5000)){
+  latex_table(i, 2, cens_val, PH_val, yearoff = TRUE)
 }
 
-for(i in 1:5){
-  latex_table(3000, i, cens_val, PH_val, PP =TRUE, yearoff = TRUE)
+for(i in c(1000,3000,5000)){
+  latex_table(i, 2, cens_val, PH_val, PP =TRUE, yearoff = TRUE)
+}
+###############
+#     HR
+###############
+for(i in c(1000,3000,5000)){
+  latex_table(i, 3, cens_val, PH_val, yearoff = TRUE)
+}
+
+for(i in c(1000,3000,5000)){
+  latex_table(i, 3, cens_val, PH_val, PP =TRUE, yearoff = TRUE)
 }
 
 ###############
-#     5000
+#     FC
 ###############
-for(i in 1:5){
-  latex_table(5000, i, cens_val, PH_val, yearoff = TRUE)
+for(i in c(1000,3000,5000)){
+  latex_table(i, 4, cens_val, PH_val, yearoff = TRUE)
 }
 
-for(i in 1:5){
-  latex_table(5000, i, cens_val, PH_val, PP = TRUE, yearoff = TRUE)
+for(i in c(1000,3000,5000)){
+  latex_table(i, 4, cens_val, PH_val, PP =TRUE, yearoff = TRUE)
+}
+###############
+#     FR
+###############
+for(i in c(1000,3000,5000)){
+  latex_table(i, 5, cens_val, PH_val, yearoff = TRUE)
+}
+
+for(i in c(1000,3000,5000)){
+  latex_table(i, 5, cens_val, PH_val, PP =TRUE, yearoff = TRUE)
 }
